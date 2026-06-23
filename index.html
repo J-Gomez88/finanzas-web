@@ -386,7 +386,7 @@ const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
 
 let pieChart=null, barChart=null;
 let SB_URL='', SB_KEY='';
-let state={month:new Date().getMonth(), year:new Date().getFullYear(), userId:null, txs:[]};
+let state={month:new Date().getMonth(), year:new Date().getFullYear(), userId:null, txs:[], metas:[]};
 let editingTxId=null, editingMetaId=null;
 let tipoActual='gasto';
 
@@ -727,9 +727,10 @@ async function renderAlertas(){
 async function renderMetas(){
   const r=await sb('GET',`metas?usuario_id=eq.${state.userId}`);
   const metas=r.data||[];
+  state.metas=metas;
   const el=document.getElementById('metas-list');
   if(!metas.length){el.innerHTML='<div class="empty">Sin metas todavía</div>';return;}
-  el.innerHTML=metas.map(m=>{
+  el.innerHTML=metas.map((m,idx)=>{
     const pct=Math.min(100,Math.round((m.actual/m.objetivo)*100));
     const color=pct>=100?'var(--green)':pct>=50?'var(--blue)':'var(--yellow)';
     return `<div class="meta">
@@ -737,7 +738,7 @@ async function renderMetas(){
         <span style="font-size:14px;font-weight:500;">${m.nombre} <span class="badge ${m.moneda.toLowerCase()}">${m.moneda}</span></span>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:13px;font-weight:700;color:${color}">${pct}%</span>
-          <button onclick="abrirEditarMeta(${JSON.stringify(m)})" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-pencil"></i></button>
+          <button onclick="abrirEditarMeta(${idx})" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-pencil"></i></button>
         </div>
       </div>
       <div class="prog"><div class="pf" style="width:${pct}%;background:${color}"></div></div>
@@ -918,7 +919,9 @@ async function guardarMeta(){
   renderMetas();
 }
 
-function abrirEditarMeta(m){
+function abrirEditarMeta(idx){
+  const m=state.metas[idx];
+  if(!m) return;
   editingMetaId=m.id;
   document.getElementById('em-nombre').value=m.nombre;
   document.getElementById('em-mon').value=m.moneda;
