@@ -42,6 +42,8 @@ body{
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;font-weight:500;transition:color .2s;font-family:inherit;}
 .nb.active{color:var(--blue);}
 .nb i{font-size:20px;}
+.nb-label{font-size:10px;}
+@media(min-width:768px){.nb-label{font-size:13px;}.nb i{font-size:18px;}}
 .nb-center-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;}
 .nb-center{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#5b9cf6,#7c6cf8);border:none;color:white;font-size:26px;cursor:pointer;box-shadow:0 4px 18px rgba(91,156,246,0.5);display:flex;align-items:center;justify-content:center;position:absolute;top:-22px;transition:transform .15s,box-shadow .15s;}
 .nb-center:active{transform:scale(0.93);box-shadow:0 2px 10px rgba(91,156,246,0.4);}
@@ -61,7 +63,7 @@ body{
 .card:hover{border-color:rgba(255,255,255,0.15);}
 .ct{font-size:10px;color:var(--text2);margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;}
 /* METRICS */
-.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}@media(min-width:768px){.metrics{grid-template-columns:repeat(3,1fr);}}
 .metric{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--r);padding:16px;}
 .ml2{font-size:10px;color:var(--text2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
 .mv{font-size:20px;font-weight:700;letter-spacing:-.5px;}
@@ -157,6 +159,96 @@ select option{background:#0f1729;}
 .subcat-tag{display:inline-block;background:rgba(91,156,246,0.12);color:var(--blue);font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid rgba(91,156,246,0.2);margin-left:4px;}
 /* FILTROS */
 .filtro-select{flex:1;background:var(--glass);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--rs);padding:9px 12px;font-size:13px;outline:none;appearance:none;font-family:'Inter',sans-serif;}
+
+/* ── DESKTOP RESPONSIVE ──────────────────────────────────────── */
+@media (min-width: 768px) {
+  /* Layout: sidebar + main */
+  body{overflow:hidden;}
+  .app{max-width:none;margin:0;padding:0;display:flex;height:100vh;}
+
+  /* Sidebar */
+  .nav{
+    position:fixed;left:0;top:0;bottom:0;
+    width:220px;max-width:220px;
+    flex-direction:column;
+    border-top:none;border-right:1px solid var(--glass-border);
+    padding:24px 12px max(24px,env(safe-area-inset-bottom));
+    align-items:stretch;gap:4px;
+    transform:none;
+    background:rgba(10,15,30,0.85);
+  }
+  /* Sidebar logo */
+  .nav::before{
+    content:'💰 Finanzas';
+    font-size:16px;font-weight:700;color:var(--text);
+    padding:8px 14px 20px;display:block;letter-spacing:-.3px;
+    border-bottom:1px solid var(--glass-border);margin-bottom:12px;
+  }
+  .nb{
+    flex:0 0 auto;flex-direction:row;
+    justify-content:flex-start;gap:12px;
+    padding:11px 14px;border-radius:var(--rs);
+    font-size:13px;font-weight:500;
+    color:var(--text2);
+  }
+  .nb i{font-size:18px;}
+  .nb.active{
+    background:rgba(91,156,246,0.12);
+    color:var(--blue);
+    border:1px solid rgba(91,156,246,0.2);
+  }
+  .nb.active i{color:var(--blue);}
+  /* Center button becomes a regular sidebar item */
+  .nb-center-wrap{
+    flex:0 0 auto;display:block;position:static;
+  }
+  .nb-center{
+    position:static;top:auto;
+    width:100%;height:auto;
+    border-radius:var(--rs);
+    padding:11px 14px;
+    font-size:13px;font-weight:500;
+    display:flex;flex-direction:row;
+    align-items:center;gap:12px;
+    box-shadow:none;
+    background:linear-gradient(135deg,rgba(91,156,246,0.15),rgba(124,108,248,0.15));
+    border:1px solid rgba(91,156,246,0.25);
+    color:var(--blue);
+    justify-content:flex-start;
+  }
+  .nb-center::after{content:'Agregar';}
+  .nb-center i{font-size:18px;}
+  .nb-center:active{transform:none;box-shadow:none;}
+
+  /* Main content area */
+  .sec{
+    margin-left:220px;
+    padding:32px 40px;
+    width:calc(100vw - 220px);
+    height:100vh;
+    overflow-y:auto;
+    padding-bottom:32px;
+  }
+
+  /* Grid improvements for desktop */
+  .metrics{grid-template-columns:repeat(4,1fr);}
+  
+  /* Two column layout for main content on wide screens */
+  .desktop-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .desktop-grid-full{grid-column:1/-1;}
+
+  /* Wider modal */
+  .modal{max-width:500px;}
+
+  /* Hide mobile-only elements */
+  .ph{padding-top:0;}
+}
+
+@media (min-width:1200px){
+  .nav{width:240px;}
+  .sec{margin-left:240px;width:calc(100vw - 240px);padding:36px 48px;}
+  .metrics{grid-template-columns:repeat(4,1fr);}
+}
 </style>
 </head>
 <body>
@@ -253,8 +345,6 @@ select option{background:#0f1729;}
       <div class="metric"><div class="ml2">Gastos ARS</div><div class="mv r" id="m-ga">$0</div></div>
       <div class="metric"><div class="ml2">Ingresos USD</div><div class="mv g" id="m-iu">USD 0</div></div>
       <div class="metric"><div class="ml2">Gastos USD</div><div class="mv r" id="m-gu">USD 0</div></div>
-    </div>
-    <div class="metrics" style="margin-bottom:14px;">
       <div class="metric"><div class="ml2">Ahorro ARS</div><div class="mv b" id="m-sa">$0</div></div>
       <div class="metric"><div class="ml2">Ahorro USD</div><div class="mv b" id="m-su">USD 0</div></div>
     </div>
@@ -408,14 +498,14 @@ select option{background:#0f1729;}
 </div>
 
 <nav class="nav" id="main-nav" style="display:none;">
-  <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i>Inicio</button>
-  <button class="nb" onclick="showSec('gastos',this)"><i class="ti ti-receipt"></i>Gastos</button>
+  <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i><span class="nb-label">Inicio</span></button>
+  <button class="nb" onclick="showSec('gastos',this)"><i class="ti ti-receipt"></i><span class="nb-label">Gastos</span></button>
   <div class="nb-center-wrap">
     <button class="nb-center" onclick="showSec('agregar',null)"><i class="ti ti-plus"></i></button>
   </div>
-  <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i>Análisis</button>
-  <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i>Metas</button>
-  <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i>Tarjetas</button>
+  <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i><span class="nb-label">Análisis</span></button>
+  <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i><span class="nb-label">Metas</span></button>
+  <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i><span class="nb-label">Tarjetas</span></button>
 </nav>
 
 <script>
@@ -890,6 +980,9 @@ function showSec(id,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('sec-'+id).classList.add('active');
   if(btn) btn.classList.add('active');
+  // On desktop, scroll content area to top
+  const sec=document.getElementById('sec-'+id);
+  if(sec) sec.scrollTop=0;
   render();
 }
 
