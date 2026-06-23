@@ -216,8 +216,8 @@ select option{background:#0f1729;}
     <div class="modal-title"><span>Editar tarjeta</span><button class="modal-close" onclick="cerrarModal('tar-modal')">✕</button></div>
     <div class="fr"><label>Nombre</label><input type="text" id="et-nombre"></div>
     <div class="fg">
-      <div class="fr"><label>Día de cierre</label><select id="et-cierre"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
-      <div class="fr"><label>Día de vencimiento</label><select id="et-vence"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+      <div class="fr"><label>Fecha de cierre</label><input type="date" id="et-cierre"></div>
+      <div class="fr"><label>Fecha de vencimiento</label><input type="date" id="et-vence"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn bd" style="flex:1" onclick="eliminarTarjeta()">🗑 Eliminar</button>
@@ -390,8 +390,8 @@ select option{background:#0f1729;}
       <div class="ct">Nueva tarjeta</div>
       <div class="fr"><label>Nombre</label><input type="text" id="t-nombre" placeholder="Ej: Visa, Naranja, Débito BNA..."></div>
       <div class="fg">
-        <div class="fr"><label>Día de cierre</label><select id="t-cierre"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
-        <div class="fr"><label>Día de vencimiento</label><select id="t-vence"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+        <div class="fr"><label>Fecha de cierre</label><input type="date" id="t-cierre"></div>
+        <div class="fr"><label>Fecha de vencimiento</label><input type="date" id="t-vence"></div>
       </div>
       <button class="btn bp" onclick="guardarTarjeta()">Guardar</button>
     </div>
@@ -826,7 +826,10 @@ async function renderTarjetas(){
       <div style="display:flex;justify-content:space-between;align-items:start;">
         <div>
           <div style="font-size:16px;font-weight:600;margin-bottom:6px;">${t.nombre}</div>
-          <div style="display:flex;gap:16px;margin-bottom:6px;"><span style="font-size:12px;color:var(--text2);">Cierre: día ${t.dia_cierre}</span><span style="font-size:12px;color:var(--text2);">Vence: día ${t.dia_vencimiento}</span></div>
+          <div style="display:flex;gap:16px;margin-bottom:6px;flex-wrap:wrap;">
+            <span style="font-size:12px;color:var(--text2);">Cierre: ${t.fecha_cierre?new Date(t.fecha_cierre+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_cierre}</span>
+            <span style="font-size:12px;color:var(--text2);">Vence: ${t.fecha_vencimiento?new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_vencimiento}</span>
+          </div>
           <div style="font-size:12px;font-weight:600;color:${diff<=2?'var(--red)':diff<=5?'var(--gold)':'var(--green)'}">${emoji} ${diff} día${diff===1?'':'s'} para el cierre</div>
         </div>
         <button onclick="abrirEditarTarjeta(${idx})" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text2);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-pencil"></i></button>
@@ -1016,10 +1019,12 @@ function toggleAddTarjeta(){const c=document.getElementById('add-tar-card');c.st
 
 async function guardarTarjeta(){
   const nombre=document.getElementById('t-nombre').value.trim();
-  const cierre=parseInt(document.getElementById('t-cierre').value);
-  const vence=parseInt(document.getElementById('t-vence').value);
+  const cierre=document.getElementById('t-cierre').value;
+  const vence=document.getElementById('t-vence').value;
   if(!nombre||!cierre||!vence){toast('Completá todos los campos','r');return;}
-  const r=await sb('POST','tarjetas',{usuario_id:state.userId,nombre,dia_cierre:cierre,dia_vencimiento:vence});
+  const diaC=parseInt(cierre.split('-')[2]);
+  const diaV=parseInt(vence.split('-')[2]);
+  const r=await sb('POST','tarjetas',{usuario_id:state.userId,nombre,dia_cierre:diaC,dia_vencimiento:diaV,fecha_cierre:cierre,fecha_vencimiento:vence});
   if(r.error){toast('Error al guardar','r');console.error(r.error);return;}
   document.getElementById('t-nombre').value='';document.getElementById('t-cierre').value='';document.getElementById('t-vence').value='';
   document.getElementById('add-tar-card').style.display='none';
@@ -1031,17 +1036,25 @@ function abrirEditarTarjeta(idx){
   if(!t) return;
   editingTarId=t.id;
   document.getElementById('et-nombre').value=t.nombre;
-  document.getElementById('et-cierre').value=String(t.dia_cierre);
-  document.getElementById('et-vence').value=String(t.dia_vencimiento);
+  // Use full date if available, otherwise build from day number
+  document.getElementById('et-cierre').value=t.fecha_cierre||'';
+  document.getElementById('et-vence').value=t.fecha_vencimiento||'';
   document.getElementById('tar-modal').style.display='flex';
 }
 
 async function guardarEdicionTarjeta(){
   if(!editingTarId) return;
+  const cierre=document.getElementById('et-cierre').value;
+  const vence=document.getElementById('et-vence').value;
+  if(!cierre||!vence){toast('Completá las fechas','r');return;}
+  const diaC=parseInt(cierre.split('-')[2]);
+  const diaV=parseInt(vence.split('-')[2]);
   const r=await sb('PATCH',`tarjetas?id=eq.${editingTarId}`,{
     nombre:document.getElementById('et-nombre').value.trim(),
-    dia_cierre:parseInt(document.getElementById('et-cierre').value),
-    dia_vencimiento:parseInt(document.getElementById('et-vence').value)
+    dia_cierre:diaC,
+    dia_vencimiento:diaV,
+    fecha_cierre:cierre,
+    fecha_vencimiento:vence
   });
   if(r.error){toast('Error al guardar','r');return;}
   cerrarModal('tar-modal');toast('Tarjeta actualizada ✓');render();
