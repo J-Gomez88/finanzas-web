@@ -191,6 +191,24 @@ select option{background:#1a1a1a;}
       <div class="br"><span style="font-size:14px;color:var(--text2);">ARS neto</span><span class="bv" id="bal-a">$0</span></div>
       <div class="br"><span style="font-size:14px;color:var(--text2);">USD neto</span><span class="bv" id="bal-u">USD 0</span></div>
     </div>
+    <div class="card" id="cuotas-home-card" style="display:none;">
+      <div class="ct">Compras en cuotas activas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:10px;">
+          <div style="font-size:10px;color:var(--text2);margin-bottom:3px;">Este mes ARS</div>
+          <div style="font-size:15px;font-weight:700;color:var(--red);" id="cuotas-mes-ars">$0</div>
+        </div>
+        <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:10px;">
+          <div style="font-size:10px;color:var(--text2);margin-bottom:3px;">Este mes USD</div>
+          <div style="font-size:15px;font-weight:700;color:var(--red);" id="cuotas-mes-usd">USD 0</div>
+        </div>
+        <div style="text-align:center;background:var(--bg3);border-radius:var(--rs);padding:10px;">
+          <div style="font-size:10px;color:var(--text2);margin-bottom:3px;">Total restante</div>
+          <div style="font-size:15px;font-weight:700;color:var(--yellow);" id="cuotas-total-rest">$0</div>
+        </div>
+      </div>
+      <div id="cuotas-home-list"></div>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div class="ct" style="margin-bottom:0;">Últimos movimientos</div>
@@ -375,7 +393,7 @@ let tipoActual='gasto';
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 // Credenciales almacenadas (hash simple — no es seguridad bancaria, es comodidad)
 const USERS = {
-  'joaquin': 'joaquin'  // ← CAMBIÁ ESTO a tu usuario y contraseña
+  'joaquin': 'finanzas2026'  // ← CAMBIÁ ESTO a tu usuario y contraseña
 };
 
 function login(){
@@ -454,8 +472,65 @@ async function getTxMes(m,y){
   const desde=`${yr}-${String(mo+1).padStart(2,'0')}-01`;
   const lastDay=new Date(yr,mo+1,0).getDate();
   const hasta=`${yr}-${String(mo+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  // Transacciones normales del mes (sin cuotas o cuota 1)
   const r=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`);
-  return r.data||[];
+  const txs=r.data||[];
+  // Agregar cuotas de compras de otros meses que caen en este mes
+  const rCuotas=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&cuotas=gt.1&select=*`);
+  const todasCuotas=rCuotas.data||[];
+  const cuotasDelMes=[];
+  todasCuotas.forEach(t=>{
+    const fechaInicio=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
+    const mesInicio=fechaInicio.getMonth();
+    const anioInicio=fechaInicio.getFullYear();
+    // Calcular qué cuota cae en este mes
+    const diffMeses=(yr-anioInicio)*12+(mo-mesInicio);
+    if(diffMeses>0 && diffMeses<t.cuotas){
+      // Esta compra tiene una cuota en este mes y NO es el mes original
+      const cuotaNum=diffMeses+1;
+      cuotasDelMes.push({
+        ...t,
+        monto:t.monto/t.cuotas,
+        descripcion:`${t.descripcion} (cuota ${cuotaNum}/${t.cuotas})`,
+        fecha:`${yr}-${String(mo+1).padStart(2,'0')}-${String(fechaInicio.getDate()).padStart(2,'0')}`,
+        _es_cuota:true,
+        _cuota_num:cuotaNum,
+        _tx_original_id:t.id
+      });
+    }
+  });
+  return [...txs,...cuotasDelMes];
+}
+
+// Calcular estado de todas las cuotas activas
+async function getCuotasActivas(){
+  const r=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&cuotas=gt.1&order=fecha.desc`);
+  const txs=r.data||[];
+  const hoy=new Date();
+  const resultado=[];
+  txs.forEach(t=>{
+    const fechaInicio=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
+    const mesInicio=fechaInicio.getMonth();
+    const anioInicio=fechaInicio.getFullYear();
+    const diffMeses=(hoy.getFullYear()-anioInicio)*12+(hoy.getMonth()-mesInicio);
+    const cuotasPagadas=Math.min(diffMeses+1,t.cuotas); // +1 porque el mes de compra cuenta
+    const cuotasRestantes=t.cuotas-cuotasPagadas;
+    if(cuotasRestantes<=0) return; // ya terminada
+    const valorCuota=t.monto/t.cuotas;
+    const montoRestante=valorCuota*cuotasRestantes;
+    // Fecha de última cuota
+    const fechaFin=new Date(fechaInicio);
+    fechaFin.setMonth(fechaFin.getMonth()+(t.cuotas-1));
+    resultado.push({
+      ...t,
+      valorCuota,
+      cuotasPagadas,
+      cuotasRestantes,
+      montoRestante,
+      fechaFin
+    });
+  });
+  return resultado;
 }
 
 // ── CATEGORÍAS DINÁMICAS ──────────────────────────────────────────────────
@@ -516,6 +591,7 @@ async function render(){
   renderMetrics(state.txs);
   renderTxList();
   await renderAlertas();
+  await renderCuotasHome();
   await renderMetas();
   await renderTarjetas();
   renderAnalisis(state.txs);
@@ -541,8 +617,10 @@ function renderMetrics(txs){
   setBal('bal-a',iA-gA-sA,'ARS');
   setBal('bal-u',iU-gU-sU,'USD');
 
-  const recent=txs.slice(0,6);
-  document.getElementById('recent-list').innerHTML=recent.length?recent.map(txHTML).join(''):'<div class="empty">Sin movimientos este mes</div>';
+  const recent=[...txs].filter(t=>!t._es_cuota).slice(0,5);
+  const cuotasEste=[...txs].filter(t=>t._es_cuota).slice(0,2);
+  const allRecent=[...recent,...cuotasEste].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).slice(0,6);
+  document.getElementById('recent-list').innerHTML=allRecent.length?allRecent.map(txHTML).join(''):'<div class="empty">Sin movimientos este mes</div>';
 
   const gastosARS=txs.filter(t=>t.tipo==='gasto'&&t.moneda==='ARS');
   const promDia=gastosARS.length?gA/new Date(state.year,state.month+1,0).getDate():0;
@@ -594,6 +672,48 @@ function fmt(n,mon){
   const abs=Math.abs(n);
   if(mon==='USD') return 'USD '+abs.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
   return '$'+Math.round(abs).toLocaleString('es-AR');
+}
+
+async function renderCuotasHome(){
+  const cuotas=await getCuotasActivas();
+  const card=document.getElementById('cuotas-home-card');
+  if(!cuotas.length){card.style.display='none';return;}
+  card.style.display='block';
+
+  // Totales del mes actual en cuotas
+  const mo=state.month, yr=state.year;
+  let mesARS=0, mesUSD=0, totalRestARS=0;
+  cuotas.forEach(t=>{
+    if(t.moneda==='ARS'){mesARS+=t.valorCuota;totalRestARS+=t.montoRestante;}
+    if(t.moneda==='USD') mesUSD+=t.valorCuota;
+  });
+  document.getElementById('cuotas-mes-ars').textContent=fmt(mesARS,'ARS');
+  document.getElementById('cuotas-mes-usd').textContent=fmt(mesUSD,'USD');
+  document.getElementById('cuotas-total-rest').textContent=fmt(totalRestARS,'ARS');
+
+  const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  document.getElementById('cuotas-home-list').innerHTML=cuotas.map(t=>{
+    const pct=Math.round((t.cuotasPagadas/t.cuotas)*100);
+    const color=pct>=75?'var(--green)':pct>=40?'var(--yellow)':'var(--red)';
+    const fechaFinStr=`${MESES[t.fechaFin.getMonth()]} ${t.fechaFin.getFullYear()}`;
+    return `<div style="padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:500;">${t.descripcion.split(' (cuota')[0]}</span>
+        <span style="font-size:11px;color:var(--text2);">${t.tarjeta||''}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:12px;color:var(--text2);">${t.cuotasPagadas}/${t.cuotas} cuotas · ${fmt(t.valorCuota,t.moneda)}/mes</span>
+        <span style="font-size:12px;font-weight:600;color:${color}">${pct}%</span>
+      </div>
+      <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:5px;">
+        <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width .4s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:var(--text3);">Resta: ${fmt(t.montoRestante,t.moneda)}</span>
+        <span style="font-size:11px;color:var(--text3);">Termina: ${fechaFinStr}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function renderAlertas(){
@@ -737,6 +857,7 @@ async function guardarTx(){
     subcategoria:subcat||null,
     tarjeta:tipoActual==='gasto'?document.getElementById('f-tar').value:null,
     cuotas:tipoActual==='gasto'?parseInt(document.getElementById('f-cuotas').value)||1:1,
+    fecha_inicio_cuotas:tipoActual==='gasto'&&parseInt(document.getElementById('f-cuotas').value)>1?fecha:null,
     fecha
   });
   if(r.error){toast('Error al guardar','r');console.error(r.error);return;}
