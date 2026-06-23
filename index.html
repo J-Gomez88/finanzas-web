@@ -756,8 +756,8 @@ function renderMetrics(txs){
   document.getElementById('m-gu').textContent=fmt(gU,'USD');
   document.getElementById('m-sa').textContent=fmt(sA,'ARS');
   document.getElementById('m-su').textContent=fmt(sU,'USD');
-  setBal('bal-a',iA-gA-sA,'ARS');
-  setBal('bal-u',iU-gU-sU,'USD');
+  setBal('bal-a',iA-gA,'ARS');
+  setBal('bal-u',iU-gU,'USD');
 
   const recent=[...txs].filter(t=>!t._es_cuota).slice(0,5);
   const cuotasEste=[...txs].filter(t=>t._es_cuota).slice(0,2);
