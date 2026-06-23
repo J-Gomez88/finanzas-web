@@ -179,6 +179,7 @@ select option{background:#0f1729;}
     align-items:stretch;gap:4px;
     transform:none;
     background:rgba(10,15,30,0.85);
+    display:flex;
   }
   /* Sidebar logo */
   .nav::before{
@@ -202,10 +203,10 @@ select option{background:#0f1729;}
   }
   .nb.active i{color:var(--blue);}
   /* Agregar button in sidebar */
-  .nb-row{display:flex;flex-direction:column;width:100%;gap:4px;}
+  .nb-row{display:flex;flex-direction:column;width:100%;gap:4px;flex:1;}
   .nb-center-wrap{
     flex:0 0 auto;display:block;position:static;width:100%;padding:0;
-    order:-1;margin-bottom:12px;
+    margin-top:auto;padding-top:12px;
   }
   .nb-center{
     position:static;top:auto;
@@ -513,7 +514,7 @@ select option{background:#0f1729;}
 
 <nav class="nav" id="main-nav" style="display:none;">
   <div class="nb-center-wrap">
-    <button class="nb-center" onclick="showSec('agregar',null)"><i class="ti ti-plus"></i><span class="nb-agregar-label">Agregar</span></button>
+    <button class="nb-center" onclick="showSec('agregar',null)"><span class="nb-agregar-label">Agregar</span><i class="ti ti-plus"></i></button>
   </div>
   <div class="nb-row">
     <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i><span class="nb-label">Inicio</span></button>
