@@ -42,6 +42,9 @@ body{
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;font-weight:500;transition:color .2s;font-family:inherit;}
 .nb.active{color:var(--blue);}
 .nb i{font-size:20px;}
+.nb.nb-agregar{color:var(--blue);}
+.nb.nb-agregar i{font-size:24px;background:linear-gradient(135deg,#5b9cf6,#7c6cf8);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:white;margin-bottom:1px;}
+.nb.nb-agregar.active i{background:linear-gradient(135deg,#7c6cf8,#5b9cf6);}
 /* SECTIONS */
 .sec{display:none;padding:16px;}
 .sec.active{display:block;}
@@ -404,10 +407,15 @@ select option{background:#0f1729;}
 
 </div>
 
+<!-- FAB Agregar -->
+<button id="fab-agregar" onclick="showSec('agregar',null)" style="display:none;position:fixed;bottom:80px;right:calc(50% - 210px);width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#5b9cf6,#7c6cf8);border:none;color:white;font-size:26px;cursor:pointer;z-index:101;box-shadow:0 4px 20px rgba(91,156,246,0.45);display:none;align-items:center;justify-content:center;transition:transform .15s;" onmouseenter="this.style.transform='scale(1.08)'" onmouseleave="this.style.transform='scale(1)'">
+  <i class="ti ti-plus"></i>
+</button>
+
 <nav class="nav" id="main-nav" style="display:none;">
   <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i>Inicio</button>
   <button class="nb" onclick="showSec('gastos',this)"><i class="ti ti-receipt"></i>Gastos</button>
-  <button class="nb" onclick="showSec('agregar',this)"><i class="ti ti-plus"></i>Agregar</button>
+  <button class="nb nb-agregar" onclick="showSec('agregar',this)"><i class="ti ti-plus"></i>Agregar</button>
   <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i>Análisis</button>
   <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i>Metas</button>
   <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i>Tarjetas</button>
@@ -497,6 +505,7 @@ async function arrancar(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('main-nav').style.display='flex';
+  document.getElementById('fab-agregar').style.display='flex';
   const u=currentUser||sessionStorage.getItem('user')||'';
   document.getElementById('welcome-txt').textContent='Bienvenido '+u.charAt(0).toUpperCase()+u.slice(1);
   buildCatSelects();
@@ -827,8 +836,8 @@ async function renderTarjetas(){
         <div>
           <div style="font-size:16px;font-weight:600;margin-bottom:6px;">${t.nombre}</div>
           <div style="display:flex;gap:16px;margin-bottom:6px;flex-wrap:wrap;">
-            <span style="font-size:12px;color:var(--text2);">Cierre: ${t.fecha_cierre?new Date(t.fecha_cierre+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_cierre}</span>
-            <span style="font-size:12px;color:var(--text2);">Vence: ${t.fecha_vencimiento?new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_vencimiento}</span>
+            ${(t.fecha_cierre||t.dia_cierre)?`<span style="font-size:12px;color:var(--text2);">Cierre: ${t.fecha_cierre?new Date(t.fecha_cierre+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_cierre}</span>`:''}
+            ${(t.fecha_vencimiento||t.dia_vencimiento)?`<span style="font-size:12px;color:var(--text2);">Vence: ${t.fecha_vencimiento?new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}):'día '+t.dia_vencimiento}</span>`:'<span style="font-size:12px;color:var(--text3);">Sin fecha de vencimiento</span>'}
           </div>
           <div style="font-size:12px;font-weight:600;color:${diff<=2?'var(--red)':diff<=5?'var(--gold)':'var(--green)'}">${emoji} ${diff} día${diff===1?'':'s'} para el cierre</div>
         </div>
@@ -1021,10 +1030,14 @@ async function guardarTarjeta(){
   const nombre=document.getElementById('t-nombre').value.trim();
   const cierre=document.getElementById('t-cierre').value;
   const vence=document.getElementById('t-vence').value;
-  if(!nombre||!cierre||!vence){toast('Completá todos los campos','r');return;}
-  const diaC=parseInt(cierre.split('-')[2]);
-  const diaV=parseInt(vence.split('-')[2]);
-  const r=await sb('POST','tarjetas',{usuario_id:state.userId,nombre,dia_cierre:diaC,dia_vencimiento:diaV,fecha_cierre:cierre,fecha_vencimiento:vence});
+  if(!nombre){toast('Ingresá el nombre de la tarjeta','r');return;}
+  const diaC=cierre?parseInt(cierre.split('-')[2]):null;
+  const diaV=vence?parseInt(vence.split('-')[2]):null;
+  const r=await sb('POST','tarjetas',{
+    usuario_id:state.userId,nombre,
+    dia_cierre:diaC,dia_vencimiento:diaV,
+    fecha_cierre:cierre||null,fecha_vencimiento:vence||null
+  });
   if(r.error){toast('Error al guardar','r');console.error(r.error);return;}
   document.getElementById('t-nombre').value='';document.getElementById('t-cierre').value='';document.getElementById('t-vence').value='';
   document.getElementById('add-tar-card').style.display='none';
@@ -1046,15 +1059,12 @@ async function guardarEdicionTarjeta(){
   if(!editingTarId) return;
   const cierre=document.getElementById('et-cierre').value;
   const vence=document.getElementById('et-vence').value;
-  if(!cierre||!vence){toast('Completá las fechas','r');return;}
-  const diaC=parseInt(cierre.split('-')[2]);
-  const diaV=parseInt(vence.split('-')[2]);
+  const diaC=cierre?parseInt(cierre.split('-')[2]):null;
+  const diaV=vence?parseInt(vence.split('-')[2]):null;
   const r=await sb('PATCH',`tarjetas?id=eq.${editingTarId}`,{
     nombre:document.getElementById('et-nombre').value.trim(),
-    dia_cierre:diaC,
-    dia_vencimiento:diaV,
-    fecha_cierre:cierre,
-    fecha_vencimiento:vence
+    dia_cierre:diaC,dia_vencimiento:diaV,
+    fecha_cierre:cierre||null,fecha_vencimiento:vence||null
   });
   if(r.error){toast('Error al guardar','r');return;}
   cerrarModal('tar-modal');toast('Tarjeta actualizada ✓');render();
