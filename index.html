@@ -203,28 +203,28 @@ select option{background:#0f1729;}
   }
   .nb.active i{color:var(--blue);}
   /* Agregar button in sidebar */
-  .nb-row{display:flex;flex-direction:column;width:100%;gap:4px;flex:1;}
-  .nb-center-wrap{
-    flex:0 0 auto;display:block;position:static;width:100%;padding:0;
-    margin-top:auto;padding-top:12px;
-  }
-  .nb-center{
-    position:static;top:auto;
-    width:100%;height:auto;
-    border-radius:var(--rs);
-    padding:11px 14px;
-    font-size:13px;font-weight:600;
-    display:flex;flex-direction:row;
-    align-items:center;gap:12px;
-    box-shadow:none;
-    background:linear-gradient(135deg,rgba(0,229,160,0.15),rgba(0,229,160,0.08));
-    border:1px solid rgba(0,229,160,0.3);
+  .nb-row{display:flex;flex-direction:column;width:100%;gap:4px;}
+  /* Hide agregar from sidebar on desktop */
+  .nb-center-wrap{display:none;}
+  /* FAB bottom right on desktop */
+  .fab-desktop{
+    position:fixed;bottom:36px;right:36px;
+    width:auto;height:52px;
+    border-radius:26px;
+    padding:0 24px;
+    background:linear-gradient(135deg,rgba(0,229,160,0.2),rgba(0,229,160,0.1));
+    border:1px solid rgba(0,229,160,0.4);
     color:var(--green);
-    justify-content:flex-start;
+    font-size:15px;font-weight:600;font-family:inherit;
+    cursor:pointer;
+    display:flex;align-items:center;gap:10px;
+    box-shadow:0 4px 20px rgba(0,229,160,0.2);
+    transition:box-shadow .2s,transform .15s;
+    z-index:102;
   }
-  .nb-agregar-label{display:inline;}
-  .nb-center i{font-size:18px;}
-  .nb-center:active{transform:none;box-shadow:none;opacity:.8;}
+  .fab-desktop:hover{box-shadow:0 6px 28px rgba(0,229,160,0.35);transform:translateY(-1px);}
+  .fab-desktop:active{transform:translateY(0);opacity:.85;}
+  .fab-desktop i{font-size:18px;}
 
   /* Main content area */
   .sec{
@@ -512,6 +512,11 @@ select option{background:#0f1729;}
 
 </div>
 
+<!-- Desktop FAB -->
+<button class="fab-desktop" id="fab-desktop" onclick="showSec('agregar',null)" style="display:none;">
+  <i class="ti ti-plus"></i> Agregar
+</button>
+
 <nav class="nav" id="main-nav" style="display:none;">
   <div class="nb-center-wrap">
     <button class="nb-center" onclick="showSec('agregar',null)"><span class="nb-agregar-label">Agregar</span><i class="ti ti-plus"></i></button>
@@ -609,6 +614,9 @@ async function arrancar(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-app').style.display='block';
   document.getElementById('main-nav').style.display='flex';
+  if(window.innerWidth>=768){
+    document.getElementById('fab-desktop').style.display='flex';
+  }
   const u=currentUser||sessionStorage.getItem('user')||'';
   document.getElementById('welcome-txt').textContent='Bienvenido '+u.charAt(0).toUpperCase()+u.slice(1);
   buildCatSelects();
