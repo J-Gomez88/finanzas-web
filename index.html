@@ -38,15 +38,17 @@ body{
 }
 .app{max-width:430px;margin:0 auto;padding-bottom:90px;}
 /* NAV */
-.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(10,15,30,0.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-border);display:flex;z-index:100;padding:8px 0 max(12px,env(safe-area-inset-bottom));}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(10,15,30,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--glass-border);display:flex;flex-wrap:wrap;z-index:100;padding:8px 0 max(12px,env(safe-area-inset-bottom));gap:0;}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;font-weight:500;transition:color .2s;font-family:inherit;}
 .nb.active{color:var(--blue);}
 .nb i{font-size:20px;}
 .nb-label{font-size:10px;}
 @media(min-width:768px){.nb-label{font-size:13px;}.nb i{font-size:18px;}}
-.nb-center-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative;}
-.nb-center{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#5b9cf6,#7c6cf8);border:none;color:white;font-size:26px;cursor:pointer;box-shadow:0 4px 18px rgba(91,156,246,0.5);display:flex;align-items:center;justify-content:center;position:absolute;top:-22px;transition:transform .15s,box-shadow .15s;}
-.nb-center:active{transform:scale(0.93);box-shadow:0 2px 10px rgba(91,156,246,0.4);}
+/* Mobile: full width rectangular agregar button */
+.nb-center-wrap{width:100%;padding:0 12px;display:flex;align-items:center;justify-content:center;}
+.nb-center{width:100%;height:42px;border-radius:var(--rs);background:linear-gradient(135deg,rgba(0,229,160,0.2),rgba(0,229,160,0.1));border:1px solid rgba(0,229,160,0.35);color:var(--green);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:opacity .15s;}
+.nb-center:active{opacity:.7;}
+.nb-agregar-label{display:none;}
 /* SECTIONS */
 .sec{display:none;padding:16px;}
 .sec.active{display:block;}
@@ -198,27 +200,28 @@ select option{background:#0f1729;}
     border:1px solid rgba(91,156,246,0.2);
   }
   .nb.active i{color:var(--blue);}
-  /* Center button becomes a regular sidebar item */
+  /* Agregar button in sidebar */
   .nb-center-wrap{
-    flex:0 0 auto;display:block;position:static;
+    flex:0 0 auto;display:block;position:static;width:100%;padding:0;
   }
   .nb-center{
     position:static;top:auto;
     width:100%;height:auto;
     border-radius:var(--rs);
     padding:11px 14px;
-    font-size:13px;font-weight:500;
+    font-size:13px;font-weight:600;
     display:flex;flex-direction:row;
     align-items:center;gap:12px;
     box-shadow:none;
-    background:linear-gradient(135deg,rgba(91,156,246,0.15),rgba(124,108,248,0.15));
-    border:1px solid rgba(91,156,246,0.25);
-    color:var(--blue);
+    background:linear-gradient(135deg,rgba(0,229,160,0.15),rgba(0,229,160,0.08));
+    border:1px solid rgba(0,229,160,0.3);
+    color:var(--green);
     justify-content:flex-start;
+    margin-top:8px;
   }
-  .nb-center::after{content:'Agregar';}
+  .nb-agregar-label{display:inline;}
   .nb-center i{font-size:18px;}
-  .nb-center:active{transform:none;box-shadow:none;}
+  .nb-center:active{transform:none;box-shadow:none;opacity:.8;}
 
   /* Main content area */
   .sec{
@@ -500,12 +503,12 @@ select option{background:#0f1729;}
 <nav class="nav" id="main-nav" style="display:none;">
   <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i><span class="nb-label">Inicio</span></button>
   <button class="nb" onclick="showSec('gastos',this)"><i class="ti ti-receipt"></i><span class="nb-label">Gastos</span></button>
-  <div class="nb-center-wrap">
-    <button class="nb-center" onclick="showSec('agregar',null)"><i class="ti ti-plus"></i></button>
-  </div>
+  <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i><span class="nb-label">Tarjetas</span></button>
   <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i><span class="nb-label">Análisis</span></button>
   <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i><span class="nb-label">Metas</span></button>
-  <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i><span class="nb-label">Tarjetas</span></button>
+  <div class="nb-center-wrap">
+    <button class="nb-center" onclick="showSec('agregar',null)"><i class="ti ti-plus"></i><span class="nb-agregar-label">Agregar</span></button>
+  </div>
 </nav>
 
 <script>
@@ -1117,18 +1120,20 @@ function toggleAddTarjeta(){const c=document.getElementById('add-tar-card');c.st
 
 async function guardarTarjeta(){
   const nombre=document.getElementById('t-nombre').value.trim();
-  const cierre=document.getElementById('t-cierre').value;
-  const vence=document.getElementById('t-vence').value;
   if(!nombre){toast('Ingresá el nombre de la tarjeta','r');return;}
+  const cierre=document.getElementById('t-cierre').value||null;
+  const vence=document.getElementById('t-vence').value||null;
   const diaC=cierre?parseInt(cierre.split('-')[2]):null;
   const diaV=vence?parseInt(vence.split('-')[2]):null;
   const r=await sb('POST','tarjetas',{
     usuario_id:state.userId,nombre,
     dia_cierre:diaC,dia_vencimiento:diaV,
-    fecha_cierre:cierre||null,fecha_vencimiento:vence||null
+    fecha_cierre:cierre,fecha_vencimiento:vence
   });
   if(r.error){toast('Error al guardar','r');console.error(r.error);return;}
-  document.getElementById('t-nombre').value='';document.getElementById('t-cierre').value='';document.getElementById('t-vence').value='';
+  document.getElementById('t-nombre').value='';
+  document.getElementById('t-cierre').value='';
+  document.getElementById('t-vence').value='';
   document.getElementById('add-tar-card').style.display='none';
   toast('Tarjeta guardada ✓');render();
 }
