@@ -423,18 +423,9 @@ function cerrarSesion(){
 }
 
 function cargarCredencialesYArrancar(){
-  // Credenciales de Supabase hardcodeadas — solo el dueño del repo las ve
-  SB_URL = localStorage.getItem('f_url') || '';
-  SB_KEY = localStorage.getItem('f_key') || '';
-  if(!SB_URL || !SB_KEY){
-    // Pedirlas una sola vez
-    SB_URL = prompt('Supabase URL:') || '';
-    SB_KEY = prompt('Anon Key:') || '';
-    if(SB_URL && SB_KEY){
-      localStorage.setItem('f_url', SB_URL);
-      localStorage.setItem('f_key', SB_KEY);
-    }
-  }
+  // Credenciales hardcodeadas — cambialas acá
+  SB_URL = 'https://gdbtgawarlpkxhsejwyv.supabase.co';
+  SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkYnRnYXdhcmxwa3hoc2Vqd3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNzU3NDcsImV4cCI6MjA5Nzc1MTc0N30.mG5G4x3xGdrQBs7-EMLpRpkc6Q4xv2s0As41rdCdmik';
   arrancar();
 }
 
