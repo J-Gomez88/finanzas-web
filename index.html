@@ -216,8 +216,8 @@ select option{background:#0f1729;}
     <div class="modal-title"><span>Editar tarjeta</span><button class="modal-close" onclick="cerrarModal('tar-modal')">✕</button></div>
     <div class="fr"><label>Nombre</label><input type="text" id="et-nombre"></div>
     <div class="fg">
-      <div class="fr"><label>Día de cierre</label><input type="number" id="et-cierre" min="1" max="31" inputmode="numeric"></div>
-      <div class="fr"><label>Día de vencimiento</label><input type="number" id="et-vence" min="1" max="31" inputmode="numeric"></div>
+      <div class="fr"><label>Día de cierre</label><select id="et-cierre"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+      <div class="fr"><label>Día de vencimiento</label><select id="et-vence"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn bd" style="flex:1" onclick="eliminarTarjeta()">🗑 Eliminar</button>
@@ -388,10 +388,10 @@ select option{background:#0f1729;}
     </div>
     <div class="card" id="add-tar-card" style="display:none;">
       <div class="ct">Nueva tarjeta</div>
-      <div class="fr"><label>Nombre</label><input type="text" id="t-nombre" placeholder="Ej: Visa, Naranja..."></div>
+      <div class="fr"><label>Nombre</label><input type="text" id="t-nombre" placeholder="Ej: Visa, Naranja, Débito BNA..."></div>
       <div class="fg">
-        <div class="fr"><label>Día de cierre</label><input type="number" id="t-cierre" min="1" max="31" placeholder="Ej: 15" inputmode="numeric"></div>
-        <div class="fr"><label>Día de vencimiento</label><input type="number" id="t-vence" min="1" max="31" placeholder="Ej: 5" inputmode="numeric"></div>
+        <div class="fr"><label>Día de cierre</label><select id="t-cierre"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
+        <div class="fr"><label>Día de vencimiento</label><select id="t-vence"><option value="">Seleccioná</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select></div>
       </div>
       <button class="btn bp" onclick="guardarTarjeta()">Guardar</button>
     </div>
@@ -427,6 +427,7 @@ const CATS = {
     {id:'Streaming',   label:'Streaming',         icon:'ti-brand-netflix', sub:true,  defaults:['Netflix','Disney+','Spotify','YouTube Premium','HBO Max','Amazon Prime','Star+']},
     {id:'IA',          label:'Suscripción IA',    icon:'ti-robot',         sub:true,  defaults:['ChatGPT','Claude','Midjourney','Gemini','Copilot']},
     {id:'Otro',        label:'Otro',              icon:'ti-dots',          sub:true,  defaults:[]},
+    {id:'Personalizado',label:'Personalizado',      icon:'ti-pencil',        sub:true,  defaults:[]},
   ],
   ingreso:[
     {id:'Sueldo',   label:'Sueldo',        icon:'ti-building', sub:false},
@@ -442,7 +443,7 @@ const ICONS={
   Comida:'ti-shopping-cart',Alquiler:'ti-home',Transporte:'ti-car',
   Servicios:'ti-bolt',Salud:'ti-heart',Entretenimiento:'ti-device-tv',
   Ropa:'ti-shirt',Streaming:'ti-brand-netflix',IA:'ti-robot',
-  Sueldo:'ti-building',Freelance:'ti-laptop',Ahorro:'ti-piggy-bank',Otro:'ti-dots'
+  Sueldo:'ti-building',Freelance:'ti-laptop',Ahorro:'ti-piggy-bank',Otro:'ti-dots',Personalizado:'ti-pencil'
 };
 const COLORS=['#7F77DD','#1D9E75','#D85A30','#D4537E','#888780','#378ADD','#639922','#D4953A','#E24B4A','#5DCAA5','#F5C842'];
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -642,7 +643,7 @@ function updateSubcatEdit(){
 // ── MEDIO DE PAGO DINÁMICO ────────────────────────────────────────────────
 function buildMedioPago(){
   const sel=document.getElementById('f-tar');
-  sel.innerHTML='<option value="Efectivo">💵 Efectivo</option><option value="Débito">💳 Débito</option>';
+  sel.innerHTML='<option value="Efectivo">💵 Efectivo</option>';
   state.tarjetas.forEach(t=>{
     sel.innerHTML+=`<option value="${t.nombre}">💳 ${t.nombre}</option>`;
   });
@@ -1030,8 +1031,8 @@ function abrirEditarTarjeta(idx){
   if(!t) return;
   editingTarId=t.id;
   document.getElementById('et-nombre').value=t.nombre;
-  document.getElementById('et-cierre').value=t.dia_cierre;
-  document.getElementById('et-vence').value=t.dia_vencimiento;
+  document.getElementById('et-cierre').value=String(t.dia_cierre);
+  document.getElementById('et-vence').value=String(t.dia_vencimiento);
   document.getElementById('tar-modal').style.display='flex';
 }
 
