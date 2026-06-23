@@ -392,7 +392,8 @@ async function getTxMes(m, y) {
   const mo = m !== undefined ? m : state.month;
   const yr = y !== undefined ? y : state.year;
   const desde = `${yr}-${String(mo+1).padStart(2,'0')}-01`;
-  const hasta = `${yr}-${String(mo+1).padStart(2,'0')}-31`;
+  const lastDay = new Date(yr, mo+1, 0).getDate();
+  const hasta = `${yr}-${String(mo+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
   const r = await sb('GET', `transacciones?usuario_id=eq.${state.userId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`);
   return r.data || [];
 }
