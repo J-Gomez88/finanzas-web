@@ -48,7 +48,7 @@ body{
 .nb-center-wrap{width:100%;padding:6px 12px 4px;display:flex;align-items:center;justify-content:center;}
 .nb-center{width:100%;height:40px;border-radius:var(--rs);background:linear-gradient(135deg,rgba(0,229,160,0.2),rgba(0,229,160,0.1));border:1px solid rgba(0,229,160,0.35);color:var(--green);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;transition:opacity .15s;}
 .nb-center:active{opacity:.7;}
-.nb-agregar-label{display:inline;}
+
 .nb-row{width:100%;display:flex;}
 /* SECTIONS */
 .sec{display:none;padding:16px;}
@@ -472,6 +472,7 @@ select option{background:#0f1729;}
           <button onclick="changeMonth(1)"><i class="ti ti-chevron-right"></i></button>
         </div>
         <button class="icon-btn" onclick="exportarExcel()" title="Exportar Excel" style="width:auto;padding:0 12px;font-size:12px;font-weight:600;color:var(--green);">↓ XLS</button>
+        <button class="icon-btn" onclick="generarBackupCompleto()" title="Backup completo" style="width:auto;padding:0 12px;font-size:12px;font-weight:600;color:var(--blue);">💾 Backup</button>
       </div>
     </div>
     <div class="card">
@@ -540,12 +541,12 @@ select option{background:#0f1729;}
 
 <!-- Desktop FAB -->
 <button class="fab-desktop" id="fab-desktop" onclick="showSec('agregar',null)" style="display:none;">
-  <i class="ti ti-plus"></i> Agregar
+  Agregar
 </button>
 
 <nav class="nav" id="main-nav" style="display:none;">
   <div class="nb-center-wrap">
-    <button class="nb-center" onclick="showSec('agregar',null)"><span class="nb-agregar-label">Agregar</span><i class="ti ti-plus"></i></button>
+    <button class="nb-center" onclick="showSec('agregar',null)">Agregar</button>
   </div>
   <div class="nb-row">
     <button class="nb active" onclick="showSec('inicio',this)"><i class="ti ti-home"></i><span class="nb-label">Inicio</span></button>
@@ -650,6 +651,7 @@ async function arrancar(){
   await cargarTarjetasEnState();
   buildMedioPago();
   render();
+  verificarBackupSemanal();
 }
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────
@@ -676,40 +678,137 @@ async function cargarTarjetasEnState(){
   state.tarjetas=r.data||[];
 }
 
+// Calcula el mes de pago real para una compra con tarjeta de crédito
+// según fecha de compra, fecha de cierre y cuota número
+function calcularMesPago(fechaCompra, tarjetaNombre, cuotaNum){
+  const tar=state.tarjetas.find(t=>t.nombre===tarjetaNombre);
+  if(!tar||!tar.dia_cierre) return null; // sin tarjeta configurada
+
+  const compra=new Date(fechaCompra+'T12:00:00');
+  const diaCompra=compra.getDate();
+  const diaC=tar.dia_cierre;
+
+  // Si la compra entra ANTES del cierre → impacta en el próximo vencimiento (mes siguiente al cierre)
+  // Si la compra entra DESPUÉS del cierre → pasa al vencimiento del mes siguiente al próximo
+  let mesBase=new Date(compra);
+  if(diaCompra<=diaC){
+    // entra en el cierre de ESTE mes → paga el siguiente mes
+    mesBase.setMonth(mesBase.getMonth()+1);
+  } else {
+    // no entra en el cierre de este mes → paga en 2 meses
+    mesBase.setMonth(mesBase.getMonth()+2);
+  }
+
+  // La cuota N-ésima se paga N-1 meses después del primer pago
+  const mesPago=new Date(mesBase);
+  mesPago.setMonth(mesPago.getMonth()+(cuotaNum-1));
+
+  return {mes:mesPago.getMonth(), anio:mesPago.getFullYear()};
+}
+
 async function getTxMes(m,y){
   const mo=m!==undefined?m:state.month;
   const yr=y!==undefined?y:state.year;
   const desde=`${yr}-${String(mo+1).padStart(2,'0')}-01`;
   const lastDay=new Date(yr,mo+1,0).getDate();
   const hasta=`${yr}-${String(mo+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+
+  // Traer TODOS los movimientos — filtramos después
   const r=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha.desc`);
-  const txs=r.data||[];
-  // Cuotas de otros meses que caen acá
+  const txsDelMes=r.data||[];
+
+  // Separar: gastos de tarjeta en cuotas los excluimos del mes de compra
+  // (solo los incluimos si tienen tarjeta configurada con cierre)
+  const txsSinCuotasTarjeta=txsDelMes.filter(t=>{
+    if(t.cuotas>1&&t.tarjeta&&state.tarjetas.find(x=>x.nombre===t.tarjeta&&x.dia_cierre)){
+      return false; // excluir — se calcula por vencimiento
+    }
+    return true;
+  });
+
+  // Traer todas las compras en cuotas con tarjeta configurada
   const rCuotas=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&cuotas=gt.1&select=*`);
   const todasCuotas=rCuotas.data||[];
   const cuotasDelMes=[];
+
   todasCuotas.forEach(t=>{
-    const fi=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
-    const diff=(yr-fi.getFullYear())*12+(mo-fi.getMonth());
-    if(diff>0&&diff<t.cuotas){
-      cuotasDelMes.push({...t,monto:t.monto/t.cuotas,descripcion:`${t.descripcion} (cuota ${diff+1}/${t.cuotas})`,fecha:`${yr}-${String(mo+1).padStart(2,'0')}-${String(fi.getDate()).padStart(2,'0')}`,_es_cuota:true,_cuota_num:diff+1});
+    const tar=state.tarjetas.find(x=>x.nombre===t.tarjeta&&x.dia_cierre);
+    const n=t.cuotas;
+    const valorCuota=t.monto/n;
+
+    if(tar){
+      // Calcular cada cuota con lógica de cierre real
+      for(let cuota=1;cuota<=n;cuota++){
+        const mp=calcularMesPago(t.fecha_inicio_cuotas||t.fecha, t.tarjeta, cuota);
+        if(mp&&mp.mes===mo&&mp.anio===yr){
+          cuotasDelMes.push({
+            ...t,
+            monto:valorCuota,
+            descripcion:`${t.descripcion} (cuota ${cuota}/${n})`,
+            fecha:`${yr}-${String(mo+1).padStart(2,'0')}-${String(tar.dia_vencimiento||1).padStart(2,'0')}`,
+            _es_cuota:true,
+            _cuota_num:cuota
+          });
+        }
+      }
+    } else {
+      // Sin tarjeta configurada: lógica anterior por diferencia de meses
+      const fi=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
+      const diff=(yr-fi.getFullYear())*12+(mo-fi.getMonth());
+      if(diff>0&&diff<n){
+        cuotasDelMes.push({
+          ...t,
+          monto:valorCuota,
+          descripcion:`${t.descripcion} (cuota ${diff+1}/${n})`,
+          fecha:`${yr}-${String(mo+1).padStart(2,'0')}-${String(fi.getDate()).padStart(2,'0')}`,
+          _es_cuota:true,
+          _cuota_num:diff+1
+        });
+      }
     }
   });
-  return [...txs,...cuotasDelMes];
+
+  return [...txsSinCuotasTarjeta,...cuotasDelMes];
 }
 
 async function getCuotasActivas(){
   const r=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&cuotas=gt.1&order=fecha.desc`);
   const txs=r.data||[];
   const hoy=new Date();
+  const hoym=hoy.getMonth();
+  const hoyy=hoy.getFullYear();
+
   return txs.map(t=>{
-    const fi=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
-    const diff=(hoy.getFullYear()-fi.getFullYear())*12+(hoy.getMonth()-fi.getMonth());
-    const pagadas=Math.min(diff+1,t.cuotas);
+    const vc=t.monto/t.cuotas;
+    const tar=state.tarjetas.find(x=>x.nombre===t.tarjeta&&x.dia_cierre);
+
+    // Calcular cuántas cuotas ya vencieron (mes actual inclusive)
+    let pagadas=0;
+    for(let cuota=1;cuota<=t.cuotas;cuota++){
+      let mp;
+      if(tar){
+        mp=calcularMesPago(t.fecha_inicio_cuotas||t.fecha, t.tarjeta, cuota);
+      } else {
+        const fi=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
+        const m=new Date(fi);m.setMonth(m.getMonth()+(cuota-1));
+        mp={mes:m.getMonth(),anio:m.getFullYear()};
+      }
+      if(mp&&(mp.anio<hoyy||(mp.anio===hoyy&&mp.mes<=hoym))) pagadas++;
+    }
+
     const restantes=t.cuotas-pagadas;
     if(restantes<=0) return null;
-    const vc=t.monto/t.cuotas;
-    const ff=new Date(fi);ff.setMonth(ff.getMonth()+(t.cuotas-1));
+
+    // Fecha de última cuota
+    let ff;
+    if(tar){
+      const mpFin=calcularMesPago(t.fecha_inicio_cuotas||t.fecha, t.tarjeta, t.cuotas);
+      ff=mpFin?new Date(mpFin.anio,mpFin.mes,tar.dia_vencimiento||1):new Date();
+    } else {
+      const fi=new Date((t.fecha_inicio_cuotas||t.fecha)+'T12:00:00');
+      ff=new Date(fi);ff.setMonth(ff.getMonth()+(t.cuotas-1));
+    }
+
     return{...t,valorCuota:vc,cuotasPagadas:pagadas,cuotasRestantes:restantes,montoRestante:vc*restantes,fechaFin:ff};
   }).filter(Boolean);
 }
@@ -1372,6 +1471,110 @@ async function exportarExcel(){
   toast('Excel descargado ✓');
 }
 
+// ── BACKUP SEMANAL ───────────────────────────────────────────────────────
+async function generarBackupCompleto(){
+  toast('Generando backup completo...');
+  const hoy=new Date();
+  const fechaStr=hoy.toISOString().split('T')[0];
+  const wb=XLSX.utils.book_new();
+
+  // Hoja 1: Todos los movimientos históricos
+  const rTx=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&order=fecha.desc`);
+  const allTx=rTx.data||[];
+  const wsTx=XLSX.utils.aoa_to_sheet([
+    ['Fecha','Tipo','Descripción','Subcategoría','Categoría','Moneda','Monto','Medio de pago','Cuotas','Fecha inicio cuotas'],
+    ...allTx.map(t=>[t.fecha,t.tipo,t.descripcion,t.subcategoria||'',t.categoria,t.moneda,+t.monto,t.tarjeta||'',t.cuotas||1,t.fecha_inicio_cuotas||''])
+  ]);
+  wsTx['!cols']=[{wch:12},{wch:10},{wch:30},{wch:20},{wch:16},{wch:8},{wch:14},{wch:14},{wch:8},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,wsTx,'Movimientos');
+
+  // Hoja 2: Metas
+  const rMetas=await sb('GET',`metas?usuario_id=eq.${state.userId}`);
+  const metas=rMetas.data||[];
+  const wsMetas=XLSX.utils.aoa_to_sheet([
+    ['Nombre','Moneda','Objetivo','Ahorrado','Falta','% Completado','Aporte mensual estimado'],
+    ...metas.map(m=>[m.nombre,m.moneda,+m.objetivo,+m.actual,Math.max(0,m.objetivo-m.actual),Math.min(100,Math.round((m.actual/m.objetivo)*100))+'%',m.aporte_mensual||''])
+  ]);
+  wsMetas['!cols']=[{wch:24},{wch:8},{wch:16},{wch:16},{wch:16},{wch:14},{wch:22}];
+  XLSX.utils.book_append_sheet(wb,wsMetas,'Metas');
+
+  // Hoja 3: Tarjetas
+  const rTar=await sb('GET',`tarjetas?usuario_id=eq.${state.userId}`);
+  const tarjetas=rTar.data||[];
+  const wsTar=XLSX.utils.aoa_to_sheet([
+    ['Nombre','Día de cierre','Día de vencimiento','Fecha de cierre','Fecha de vencimiento'],
+    ...tarjetas.map(t=>[t.nombre,t.dia_cierre||'',t.dia_vencimiento||'',t.fecha_cierre||'',t.fecha_vencimiento||''])
+  ]);
+  wsTar['!cols']=[{wch:18},{wch:14},{wch:18},{wch:18},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,wsTar,'Tarjetas');
+
+  // Hoja 4: Cuotas activas
+  const cuotasActivas=await getCuotasActivas();
+  const wsCuotas=XLSX.utils.aoa_to_sheet([
+    ['Descripción','Tarjeta','Moneda','Monto total','Valor cuota','Cuotas pagadas','Cuotas restantes','Monto restante','Termina'],
+    ...cuotasActivas.map(c=>[
+      c.descripcion,c.tarjeta||'',c.moneda,+c.monto,+c.valorCuota,
+      c.cuotasPagadas,c.cuotasRestantes,+c.montoRestante,
+      c.fechaFin.toLocaleDateString('es-AR')
+    ])
+  ]);
+  wsCuotas['!cols']=[{wch:30},{wch:14},{wch:8},{wch:14},{wch:12},{wch:14},{wch:16},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsCuotas,'Cuotas activas');
+
+  // Hoja 5: Resumen por mes (últimos 12 meses)
+  const resumenRows=[['Mes','Ingresos ARS','Gastos ARS','Ahorro ARS','Balance ARS','Ingresos USD','Gastos USD','Balance USD']];
+  const hoyRef=new Date();
+  for(let i=11;i>=0;i--){
+    let m=hoyRef.getMonth()-i,y=hoyRef.getFullYear();
+    if(m<0){m+=12;y--;}
+    const txsMes=allTx.filter(t=>{
+      const d=new Date(t.fecha+'T12:00:00');
+      return d.getMonth()===m&&d.getFullYear()===y;
+    });
+    const iA=txsMes.filter(t=>t.tipo==='ingreso'&&t.moneda==='ARS').reduce((a,t)=>a+(+t.monto),0);
+    const gA=txsMes.filter(t=>t.tipo==='gasto'  &&t.moneda==='ARS').reduce((a,t)=>a+(+t.monto),0);
+    const sA=txsMes.filter(t=>t.tipo==='ahorro'  &&t.moneda==='ARS').reduce((a,t)=>a+(+t.monto),0);
+    const iU=txsMes.filter(t=>t.tipo==='ingreso'&&t.moneda==='USD').reduce((a,t)=>a+(+t.monto),0);
+    const gU=txsMes.filter(t=>t.tipo==='gasto'  &&t.moneda==='USD').reduce((a,t)=>a+(+t.monto),0);
+    resumenRows.push([`${MONTHS[m]} ${y}`,iA,gA,sA,iA-gA,iU,gU,iU-gU]);
+  }
+  const wsResumen=XLSX.utils.aoa_to_sheet(resumenRows);
+  wsResumen['!cols']=[{wch:16},{wch:14},{wch:12},{wch:12},{wch:14},{wch:14},{wch:12},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,wsResumen,'Resumen anual');
+
+  // Hoja 6: Info del backup
+  const wsInfo=XLSX.utils.aoa_to_sheet([
+    ['Backup generado el',hoy.toLocaleDateString('es-AR')],
+    ['Total movimientos',allTx.length],
+    ['Total metas',metas.length],
+    ['Total tarjetas',tarjetas.length],
+    ['Cuotas activas',cuotasActivas.length],
+  ]);
+  wsInfo['!cols']=[{wch:24},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,wsInfo,'Info backup');
+
+  XLSX.writeFile(wb,`backup_finanzas_${fechaStr}.xlsx`);
+  localStorage.setItem('ultimo_backup',fechaStr);
+  toast('Backup descargado ✓');
+}
+
+function verificarBackupSemanal(){
+  const ultimo=localStorage.getItem('ultimo_backup');
+  if(!ultimo) return; // primer uso, no molestar
+  const ultimoDate=new Date(ultimo);
+  const hoy=new Date();
+  const diffDias=Math.floor((hoy-ultimoDate)/(1000*60*60*24));
+  if(diffDias>=7){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.style.cssText='position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:rgba(15,23,41,0.97);border:1px solid rgba(91,156,246,0.4);color:#f0f4ff;padding:14px 20px;border-radius:14px;font-size:13px;z-index:400;max-width:340px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+      el.innerHTML=`<div style="margin-bottom:10px;font-weight:600;">📅 Han pasado ${diffDias} días desde tu último backup</div><div style="display:flex;gap:8px;justify-content:center;"><button onclick="generarBackupCompleto();this.closest('div[style]').remove();" style="background:linear-gradient(135deg,#5b9cf6,#7c6cf8);border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;">Generar backup</button><button onclick="this.closest('div[style]').remove();" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);color:rgba(200,210,255,0.55);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;">Más tarde</button></div>`;
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(),15000);
+    },3000);
+  }
+}
+
 // ── TOAST ─────────────────────────────────────────────────────────────────
 function toast(msg,tipo){
   const el=document.getElementById('toast');
@@ -1391,6 +1594,11 @@ if(sessionStorage.getItem('logged')==='1'){
   cargarCredencialesYArrancar();
 }else{
   document.getElementById('login-screen').style.display='flex';
+}
+
+// Registrar fecha del primer backup si no existe
+if(!localStorage.getItem('ultimo_backup')){
+  localStorage.setItem('ultimo_backup',new Date().toISOString().split('T')[0]);
 }
 </script>
 </body>
