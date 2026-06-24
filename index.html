@@ -282,7 +282,7 @@ select option{background:#0f1729;}
     <div class="fr"><label>Descripción</label><input type="text" id="e-desc"></div>
     <div class="fg">
       <div class="fr"><label>Moneda</label><select id="e-moneda"><option value="ARS">ARS $</option><option value="USD">USD</option></select></div>
-      <div class="fr"><label>Monto</label><input type="number" id="e-monto" inputmode="decimal"></div>
+      <div class="fr"><label>Monto</label><input type="number" step="any" id="e-monto" inputmode="decimal"></div>
     </div>
     <div class="fr"><label>Categoría</label><select id="e-cat" onchange="updateSubcatEdit()"></select></div>
     <div class="fr" id="e-subcat-wrap" style="display:none;"><label>Detalle / Subcategoría</label><input type="text" id="e-subcat" placeholder="Ej: Netflix, luz, etc."></div>
@@ -301,13 +301,33 @@ select option{background:#0f1729;}
     <div class="fr"><label>Nombre</label><input type="text" id="em-nombre"></div>
     <div class="fg">
       <div class="fr"><label>Moneda</label><select id="em-mon"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
-      <div class="fr"><label>Objetivo</label><input type="number" id="em-obj" inputmode="decimal"></div>
+      <div class="fr"><label>Objetivo</label><input type="number" step="any" id="em-obj" inputmode="decimal"></div>
     </div>
-    <div class="fr"><label>Ahorrado hasta ahora</label><input type="number" id="em-act" inputmode="decimal"></div>
+    <div class="fr"><label>Ahorrado hasta ahora</label><input type="number" step="any" id="em-act" inputmode="decimal"></div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn bd" style="flex:1" onclick="eliminarMeta()">🗑 Eliminar</button>
       <button class="btn bp" style="flex:2" onclick="guardarEdicionMeta()">Guardar cambios</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL APORTE A META -->
+<div class="modal-overlay" id="aporte-modal" style="display:none;" onclick="if(event.target===this)cerrarModal('aporte-modal')">
+  <div class="modal">
+    <div class="modal-title"><span id="aporte-modal-title">Agregar aporte</span><button class="modal-close" onclick="cerrarModal('aporte-modal')">✕</button></div>
+    <div class="fr"><label>Monto</label><input type="number" id="ap-monto" placeholder="0" inputmode="decimal" step="any"></div>
+    <div class="fg">
+      <div class="fr"><label>Moneda</label><select id="ap-mon"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+      <div class="fr"><label>Fecha</label><input type="date" id="ap-fecha"></div>
+    </div>
+    <div class="fr"><label>Detalle (opcional)</label><input type="text" id="ap-detalle" placeholder="Ej: sueldo junio, extra..."></div>
+    <div style="margin-bottom:14px;background:rgba(255,255,255,0.04);border-radius:var(--rs);padding:12px;">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Proyección</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;">¿Cuánto pensás aportar por mes?</div>
+      <input type="number" id="ap-proyeccion" placeholder="Aporte mensual estimado" inputmode="decimal" step="any" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--rs);padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;outline:none;margin-bottom:8px;" oninput="calcularProyeccion()">
+      <div id="proyeccion-result" style="font-size:12px;color:var(--green);min-height:16px;"></div>
+    </div>
+    <button class="btn bp" onclick="guardarAporte()">Guardar aporte</button>
   </div>
 </div>
 
@@ -346,13 +366,19 @@ select option{background:#0f1729;}
       </div>
     </div>
     <div id="alerts-home"></div>
-    <div class="metrics">
-      <div class="metric"><div class="ml2">Ingresos ARS</div><div class="mv g" id="m-ia">$0</div></div>
-      <div class="metric"><div class="ml2">Gastos ARS</div><div class="mv r" id="m-ga">$0</div></div>
-      <div class="metric"><div class="ml2">Ingresos USD</div><div class="mv g" id="m-iu">USD 0</div></div>
-      <div class="metric"><div class="ml2">Gastos USD</div><div class="mv r" id="m-gu">USD 0</div></div>
-      <div class="metric"><div class="ml2">Ahorro ARS</div><div class="mv b" id="m-sa">$0</div></div>
-      <div class="metric"><div class="ml2">Ahorro USD</div><div class="mv b" id="m-su">USD 0</div></div>
+    <!-- Fila ARS -->
+    <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;padding:0 2px;">🇦🇷 Pesos ARS</div>
+    <div class="metrics" style="margin-bottom:14px;">
+      <div class="metric"><div class="ml2">Ingresos</div><div class="mv g" id="m-ia">$0</div></div>
+      <div class="metric"><div class="ml2">Gastos</div><div class="mv r" id="m-ga">$0</div></div>
+      <div class="metric"><div class="ml2">Ahorro</div><div class="mv b" id="m-sa">$0</div></div>
+    </div>
+    <!-- Fila USD -->
+    <div style="font-size:10px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;padding:0 2px;">💵 Dólares USD</div>
+    <div class="metrics" style="margin-bottom:14px;">
+      <div class="metric"><div class="ml2">Ingresos</div><div class="mv g" id="m-iu">USD 0</div></div>
+      <div class="metric"><div class="ml2">Gastos</div><div class="mv r" id="m-gu">USD 0</div></div>
+      <div class="metric"><div class="ml2">Ahorro</div><div class="mv b" id="m-su">USD 0</div></div>
     </div>
     <div class="card">
       <div class="ct">Balance del mes</div>
@@ -417,7 +443,7 @@ select option{background:#0f1729;}
       <div class="fr"><label>Descripción</label><input type="text" id="f-desc" placeholder="Ej: supermercado, sueldo..."></div>
       <div class="fg">
         <div class="fr"><label>Moneda</label><select id="f-mon"><option value="ARS">ARS $</option><option value="USD">USD</option></select></div>
-        <div class="fr"><label>Monto</label><input type="number" id="f-monto" placeholder="0" inputmode="decimal"></div>
+        <div class="fr"><label>Monto</label><input type="number" step="any" id="f-monto" placeholder="0" inputmode="decimal"></div>
       </div>
       <div class="fr" id="cat-wrap"><label>Categoría</label><select id="f-cat" onchange="updateSubcat()"></select></div>
       <div class="fr" id="subcat-wrap" style="display:none;"><label id="subcat-label">Detalle</label>
@@ -427,7 +453,7 @@ select option{background:#0f1729;}
       <div id="cuotas-wrap">
         <div class="fg">
           <div class="fr"><label>Medio de pago</label><select id="f-tar"></select></div>
-          <div class="fr"><label>Cuotas</label><select id="f-cuotas"><option value="1">1 cuota</option><option value="3">3</option><option value="6">6</option><option value="12">12</option><option value="18">18</option><option value="24">24</option></select></div>
+          <div class="fr"><label>Cuotas</label><input type="number" id="f-cuotas" value="1" min="1" max="999" inputmode="numeric" placeholder="Ej: 12" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--rs);padding:12px 14px;font-size:15px;font-family:'Inter',sans-serif;outline:none;"></div>
         </div>
       </div>
       <div class="fr"><label>Fecha</label><input type="date" id="f-fecha"></div>
@@ -477,9 +503,9 @@ select option{background:#0f1729;}
       <div class="fr"><label>Nombre</label><input type="text" id="g-nombre" placeholder="Ej: vacaciones, auto..."></div>
       <div class="fg">
         <div class="fr"><label>Moneda</label><select id="g-mon"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
-        <div class="fr"><label>Objetivo</label><input type="number" id="g-obj" placeholder="0" inputmode="decimal"></div>
+        <div class="fr"><label>Objetivo</label><input type="number" id="g-obj" placeholder="0" inputmode="decimal" step="any"></div>
       </div>
-      <div class="fr"><label>Ya tengo</label><input type="number" id="g-act" placeholder="0" inputmode="decimal"></div>
+      <div class="fr"><label>Ya tengo</label><input type="number" id="g-act" placeholder="0" inputmode="decimal" step="any"></div>
       <button class="btn bp" onclick="guardarMeta()">Guardar meta</button>
     </div>
     <div class="card"><div id="metas-list"><div class="loading">Cargando...</div></div></div>
@@ -826,7 +852,11 @@ function renderTxList(){
 }
 
 function txHTML(t){
-  const icon=ICONS[t.categoria]||'ti-dots';
+  let icon=ICONS[t.categoria]||'ti-dots';
+  // Savings: icon by currency
+  if(t.tipo==='ahorro'){
+    icon=t.moneda==='USD'?'ti-currency-dollar':'ti-currency-peso';
+  }
   const fecha=new Date(t.fecha+'T12:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'short'});
   const pago=t.tarjeta&&t.tarjeta!=='Efectivo'?` · ${t.tarjeta}${t.cuotas>1?' ('+t.cuotas+'c)':''}`:t.tarjeta?` · ${t.tarjeta}`:'';
   const subLabel=t.subcategoria?`<span class="subcat-tag">${t.subcategoria}</span>`:'';
@@ -851,10 +881,18 @@ function setBal(id,val,mon){
   el.style.color=val>=0?'var(--green)':'var(--red)';
 }
 
+function parseMonto(v){
+  if(typeof v==='number') return v;
+  const s=String(v).replace(/,/,'.');
+  return parseFloat(s)||0;
+}
+
 function fmt(n,mon){
   const abs=Math.abs(n);
+  const hasDecimals=abs!==Math.floor(abs);
   if(mon==='USD') return 'USD '+abs.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  return '$'+Math.round(abs).toLocaleString('es-AR');
+  if(hasDecimals) return '$'+abs.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return '$'+abs.toLocaleString('es-AR');
 }
 
 async function renderAlertas(){
@@ -916,19 +954,40 @@ async function renderMetas(){
   if(!state.metas.length){el.innerHTML='<div class="empty">Sin metas todavía</div>';return;}
   el.innerHTML=state.metas.map((m,idx)=>{
     const pct=Math.min(100,Math.round((m.actual/m.objetivo)*100));
+    const falta=Math.max(0,m.objetivo-m.actual);
     const color=pct>=100?'var(--green)':pct>=50?'var(--blue)':'var(--gold)';
     return `<div class="meta">
       <div class="mh">
         <span style="font-size:14px;font-weight:500;">${m.nombre} <span class="badge ${m.moneda.toLowerCase()}">${m.moneda}</span></span>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-size:13px;font-weight:700;color:${color}">${pct}%</span>
-          <button onclick="abrirEditarMeta(${idx})" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;"><i class="ti ti-pencil"></i></button>
+          <button onclick="abrirAporte(${idx})" style="background:var(--green-dim);border:1px solid rgba(0,229,160,0.3);color:var(--green);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;" title="Agregar aporte"><i class="ti ti-plus"></i></button>
+          <button onclick="abrirEditarMeta(${idx})" style="background:var(--glass);border:1px solid var(--glass-border);color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;" title="Editar meta"><i class="ti ti-pencil"></i></button>
         </div>
       </div>
       <div class="prog"><div class="pf" style="width:${pct}%;background:${color}"></div></div>
-      <div class="ma"><span>${fmt(m.actual,m.moneda)}</span><span>${fmt(m.objetivo,m.moneda)}</span></div>
+      <div class="ma">
+        <span>${fmt(m.actual,m.moneda)} ahorrado</span>
+        <span style="color:var(--text3)">falta ${fmt(falta,m.moneda)}</span>
+        <span>${fmt(m.objetivo,m.moneda)}</span>
+      </div>
+      ${m.aporte_mensual?`<div style="font-size:11px;color:var(--green);margin-top:6px;">📅 Proyección: ${proyectarMeta(m)} meses restantes · aprox. ${proyectarFecha(m)}</div>`:''}
     </div>`;
   }).join('');
+}
+
+function proyectarMeta(m){
+  const falta=Math.max(0,m.objetivo-m.actual);
+  if(!m.aporte_mensual||m.aporte_mensual<=0) return '—';
+  return Math.ceil(falta/m.aporte_mensual);
+}
+
+function proyectarFecha(m){
+  const meses=proyectarMeta(m);
+  if(meses==='—') return '—';
+  const hoy=new Date();
+  hoy.setMonth(hoy.getMonth()+meses);
+  return hoy.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
 }
 
 async function renderTarjetas(){
@@ -1030,7 +1089,7 @@ function setTipo(t){
 
 async function guardarTx(){
   const desc=document.getElementById('f-desc').value.trim();
-  const monto=parseFloat(document.getElementById('f-monto').value);
+  const monto=parseMonto(document.getElementById('f-monto').value);
   const fecha=document.getElementById('f-fecha').value;
   if(!desc||!monto||!fecha){toast('Completá todos los campos','r');return;}
   const subcat=getSubcatValue();
@@ -1040,7 +1099,7 @@ async function guardarTx(){
     categoria:tipoActual==='ahorro'?'Ahorro':document.getElementById('f-cat').value,
     subcategoria:subcat||null,
     tarjeta:tipoActual==='gasto'?document.getElementById('f-tar').value:null,
-    cuotas:tipoActual==='gasto'?parseInt(document.getElementById('f-cuotas').value)||1:1,
+    cuotas:tipoActual==='gasto'?Math.max(1,parseInt(document.getElementById('f-cuotas').value)||1):1,
     fecha,
     fecha_inicio_cuotas:tipoActual==='gasto'&&parseInt(document.getElementById('f-cuotas').value)>1?fecha:null
   });
@@ -1076,7 +1135,7 @@ async function guardarEdicion(){
   if(!editingTxId) return;
   const r=await sb('PATCH',`transacciones?id=eq.${editingTxId}`,{
     descripcion:document.getElementById('e-desc').value.trim(),
-    monto:parseFloat(document.getElementById('e-monto').value),
+    monto:parseMonto(document.getElementById('e-monto').value),
     moneda:document.getElementById('e-moneda').value,
     categoria:document.getElementById('e-cat').value,
     subcategoria:document.getElementById('e-subcat').value.trim()||null,
@@ -1098,8 +1157,8 @@ function toggleAddMeta(){const c=document.getElementById('add-meta-card');c.styl
 
 async function guardarMeta(){
   const nombre=document.getElementById('g-nombre').value.trim();
-  const objetivo=parseFloat(document.getElementById('g-obj').value);
-  const actual=parseFloat(document.getElementById('g-act').value)||0;
+  const objetivo=parseMonto(document.getElementById('g-obj').value);
+  const actual=parseMonto(document.getElementById('g-act').value)||0;
   if(!nombre||!objetivo){toast('Completá nombre y objetivo','r');return;}
   await sb('POST','metas',{usuario_id:state.userId,nombre,moneda:document.getElementById('g-mon').value,objetivo,actual});
   document.getElementById('g-nombre').value='';document.getElementById('g-obj').value='';document.getElementById('g-act').value='';
@@ -1123,8 +1182,8 @@ async function guardarEdicionMeta(){
   const r=await sb('PATCH',`metas?id=eq.${editingMetaId}`,{
     nombre:document.getElementById('em-nombre').value.trim(),
     moneda:document.getElementById('em-mon').value,
-    objetivo:parseFloat(document.getElementById('em-obj').value),
-    actual:parseFloat(document.getElementById('em-act').value)||0
+    objetivo:parseMonto(document.getElementById('em-obj').value),
+    actual:parseMonto(document.getElementById('em-act').value)||0
   });
   if(r.error){toast('Error al guardar','r');return;}
   cerrarModal('meta-modal');toast('Meta actualizada ✓');renderMetas();
@@ -1135,6 +1194,58 @@ async function eliminarMeta(){
   if(!confirm('¿Eliminar esta meta?')) return;
   await sb('DELETE',`metas?id=eq.${editingMetaId}`);
   cerrarModal('meta-modal');toast('Meta eliminada');renderMetas();
+}
+
+// ── APORTES A METAS ──────────────────────────────────────────────────────
+let editingAporteMetaId=null;
+
+function abrirAporte(idx){
+  const m=state.metas[idx];
+  if(!m) return;
+  editingAporteMetaId=m.id;
+  document.getElementById('aporte-modal-title').textContent='Aporte a: '+m.nombre;
+  document.getElementById('ap-monto').value='';
+  document.getElementById('ap-mon').value=m.moneda;
+  document.getElementById('ap-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ap-detalle').value='';
+  document.getElementById('ap-proyeccion').value=m.aporte_mensual||'';
+  document.getElementById('proyeccion-result').textContent='';
+  calcularProyeccion();
+  document.getElementById('aporte-modal').style.display='flex';
+}
+
+function calcularProyeccion(){
+  const aporteMensual=parseMonto(document.getElementById('ap-proyeccion').value)||0;
+  const el=document.getElementById('proyeccion-result');
+  if(!editingAporteMetaId||!aporteMensual){el.textContent='';return;}
+  const m=state.metas.find(x=>x.id===editingAporteMetaId);
+  if(!m){el.textContent='';return;}
+  const actualNuevo=m.actual+(parseMonto(document.getElementById('ap-monto').value)||0);
+  const falta=Math.max(0,m.objetivo-actualNuevo);
+  if(falta<=0){el.textContent='✅ Ya alcanzaste la meta!';el.style.color='var(--green)';return;}
+  const meses=Math.ceil(falta/aporteMensual);
+  const fecha=new Date();
+  fecha.setMonth(fecha.getMonth()+meses);
+  const fechaStr=fecha.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+  el.textContent=`En ${meses} mes${meses===1?'':'es'} aproximadamente (${fechaStr})`;
+  el.style.color='var(--green)';
+}
+
+async function guardarAporte(){
+  const monto=parseMonto(document.getElementById('ap-monto').value);
+  if(!monto||monto<=0){toast('Ingresá un monto válido','r');return;}
+  const m=state.metas.find(x=>x.id===editingAporteMetaId);
+  if(!m) return;
+  const nuevoActual=m.actual+monto;
+  const aporteMensual=parseMonto(document.getElementById('ap-proyeccion').value)||null;
+  const r=await sb('PATCH',`metas?id=eq.${editingAporteMetaId}`,{
+    actual:nuevoActual,
+    aporte_mensual:aporteMensual
+  });
+  if(r.error){toast('Error al guardar','r');console.error(r.error);return;}
+  cerrarModal('aporte-modal');
+  toast(`Aporte de ${fmt(monto,m.moneda)} guardado ✓`);
+  renderMetas();
 }
 
 // ── TARJETAS ──────────────────────────────────────────────────────────────
@@ -1273,6 +1384,7 @@ function toast(msg,tipo){
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 document.getElementById('f-fecha').value=new Date().toISOString().split('T')[0];
+document.getElementById('ap-fecha').value=new Date().toISOString().split('T')[0];
 
 if(sessionStorage.getItem('logged')==='1'){
   currentUser=sessionStorage.getItem('user')||'';
