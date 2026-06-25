@@ -284,6 +284,27 @@ select option{background:#0f1729;}
 .vs-item{background:rgba(255,255,255,0.04);border-radius:var(--rs);padding:10px;text-align:center;}
 .vs-num{font-size:20px;font-weight:700;}
 .vs-lbl{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── DESCUBIERTO BANCARIO ─────────────────────────────────────────── */
+.desc-card{background:linear-gradient(135deg,rgba(255,90,110,0.12),rgba(255,90,110,0.06));border:1px solid rgba(255,90,110,0.3);border-radius:var(--r);padding:20px;margin-bottom:14px;}
+.desc-card.critico{background:linear-gradient(135deg,rgba(255,90,110,0.25),rgba(255,90,110,0.12));border-color:rgba(255,90,110,0.6);}
+.desc-card.ok{background:linear-gradient(135deg,rgba(0,229,160,0.08),rgba(0,229,160,0.03));border-color:rgba(0,229,160,0.2);}
+.desc-titulo{font-size:13px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.desc-titulo.ok{color:var(--green);}
+.desc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.desc-item{background:rgba(255,255,255,0.05);border-radius:var(--rs);padding:10px;}
+.desc-item-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.desc-item-val{font-size:16px;font-weight:700;}
+.desc-bar-wrap{margin-bottom:14px;}
+.desc-bar-track{height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin:6px 0 4px;}
+.desc-bar-fill{height:100%;border-radius:4px;transition:width .5s;}
+.desc-alert{background:rgba(255,90,110,0.1);border:1px solid rgba(255,90,110,0.25);border-radius:var(--rs);padding:9px 12px;font-size:12px;color:var(--red);margin-bottom:7px;display:flex;align-items:flex-start;gap:7px;}
+.desc-alert.info{background:rgba(245,200,66,0.08);border-color:rgba(245,200,66,0.2);color:var(--gold);}
+.desc-alert.critico{background:rgba(255,90,110,0.2);border-color:rgba(255,90,110,0.5);font-weight:600;}
+.desc-saldo-real{background:rgba(91,156,246,0.1);border:1px solid rgba(91,156,246,0.25);border-radius:var(--rs);padding:12px;display:flex;justify-content:space-between;align-items:center;}
+.desc-config{background:rgba(255,255,255,0.04);border-radius:var(--rs);padding:12px;margin-bottom:12px;}
+.desc-config label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px;font-weight:500;}
+.desc-config input{background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);color:var(--text);border-radius:var(--rs);padding:8px 12px;font-size:14px;font-family:inherit;outline:none;width:100%;}
 </style>
 </head>
 <body>
@@ -414,6 +435,9 @@ select option{background:#0f1729;}
       <div class="br"><span style="font-size:14px;color:var(--text2);">ARS neto</span><span class="bv" id="bal-a">$0</span></div>
       <div class="br"><span style="font-size:14px;color:var(--text2);">USD neto</span><span class="bv" id="bal-u">USD 0</span></div>
     </div>
+    <!-- Card Descubierto Santander -->
+    <div id="desc-home-card" style="display:none;"></div>
+
     <div class="card" id="cuotas-home-card" style="display:none;">
       <div class="ct">Compras en cuotas activas</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -557,6 +581,44 @@ select option{background:#0f1729;}
     <div class="card"><div id="metas-list"><div class="loading">Cargando...</div></div></div>
   </div>
 
+  <!-- DESCUBIERTO BANCARIO -->
+  <div id="sec-descubierto" class="sec">
+    <div class="ph">
+      <div class="pt">Descubierto</div>
+      <span style="font-size:11px;color:var(--text2);padding-top:4px;">Simulación · Santander</span>
+    </div>
+
+    <!-- Configuración editable -->
+    <div class="card">
+      <div class="ct">Configuración</div>
+      <div class="desc-config">
+        <label>Límite de descubierto (ARS)</label>
+        <input type="number" id="desc-limite-input" value="5000000" step="any" oninput="guardarConfigDesc()">
+      </div>
+      <div class="desc-config">
+        <label>Tasa de interés diaria (%)</label>
+        <input type="number" id="desc-tasa-input" value="1.8" step="0.1" min="0" oninput="guardarConfigDesc()">
+      </div>
+      <div class="desc-config" style="margin-bottom:0;">
+        <label>Fecha de inicio del descubierto</label>
+        <input type="date" id="desc-inicio-input" oninput="guardarConfigDesc()">
+      </div>
+    </div>
+
+    <!-- Card principal -->
+    <div id="desc-detalle-card"></div>
+
+    <!-- Simulador de ingreso -->
+    <div class="card">
+      <div class="ct">Simulador: ¿Qué pasa cuando cobro?</div>
+      <div class="fr" style="margin-bottom:10px;">
+        <label>Ingreso a recibir (ARS)</label>
+        <input type="number" id="desc-sim-ingreso" placeholder="Ej: 3400000" step="any" inputmode="decimal" oninput="simularIngreso()">
+      </div>
+      <div id="desc-sim-resultado"></div>
+    </div>
+  </div>
+
   <!-- RECORDATORIOS -->
   <div id="sec-recordatorios" class="sec">
     <div class="ph">
@@ -646,6 +708,7 @@ select option{background:#0f1729;}
     <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i><span class="nb-label">Análisis</span></button>
     <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i><span class="nb-label">Metas</span></button>
     <button class="nb" onclick="showSec('recordatorios',this)"><i class="ti ti-bell"></i><span class="nb-label">Avisos</span></button>
+    <button class="nb" onclick="showSec('descubierto',this)"><i class="ti ti-building-bank"></i><span class="nb-label">Banco</span></button>
   </div>
 </nav>
 
@@ -1001,6 +1064,7 @@ async function render(){
   renderAnalisis(state.txs);
   renderRecordatorios();
   await renderDashboardAvisos();
+  renderDescubierto();
 }
 
 function renderMetrics(txs){
@@ -1910,6 +1974,233 @@ async function renderDashboardAvisos(){
   }
 }
 
+// ── DESCUBIERTO BANCARIO SANTANDER ───────────────────────────────────────
+function getConfigDesc(){
+  try{return JSON.parse(localStorage.getItem('desc_config_v1'))||{};}catch(e){return{};}
+}
+function guardarConfigDesc(){
+  const cfg={
+    limite:parseMonto(document.getElementById('desc-limite-input')?.value)||5000000,
+    tasa:parseMonto(document.getElementById('desc-tasa-input')?.value)||1.8,
+    inicio:document.getElementById('desc-inicio-input')?.value||null
+  };
+  localStorage.setItem('desc_config_v1',JSON.stringify(cfg));
+  renderDescubierto();
+}
+
+function calcularDescubierto(txs){
+  // Solo ARS - calcular balance del mes actual
+  let iA=0, gA=0, sA=0;
+  txs.forEach(t=>{
+    if(t.moneda!=='ARS') return;
+    if(t.tipo==='ingreso') iA+=+t.monto;
+    if(t.tipo==='gasto')   gA+=+t.monto;
+    if(t.tipo==='ahorro')  sA+=+t.monto;
+  });
+
+  const cfg=getConfigDesc();
+  const limite=cfg.limite||5000000;
+  const tasaDiaria=(cfg.tasa||1.8)/100;
+  const inicioStr=cfg.inicio||null;
+
+  // Balance neto ARS (sin ahorro porque es plata reservada)
+  const balNeto=iA-gA;
+  const descUsado=balNeto<0?Math.min(Math.abs(balNeto),limite):0;
+
+  // Calcular días en descubierto
+  let diasEnDesc=0;
+  if(descUsado>0&&inicioStr){
+    const inicio=new Date(inicioStr+'T12:00:00');
+    const hoy=new Date();
+    diasEnDesc=Math.max(0,Math.floor((hoy-inicio)/(1000*60*60*24)));
+  }
+
+  const interesDiario=descUsado*tasaDiaria;
+  const interesAcum=interesDiario*diasEnDesc;
+  const totalDevolver=descUsado+interesAcum;
+  const disponible=limite-descUsado;
+  const pctUsado=limite>0?(descUsado/limite)*100:0;
+
+  return{
+    limite,tasaDiaria,tasaPct:cfg.tasa||1.8,
+    iA,gA,sA,balNeto,
+    descUsado,disponible,pctUsado,
+    diasEnDesc,interesDiario,interesAcum,totalDevolver,
+    activo:descUsado>0
+  };
+}
+
+function renderDescubierto(){
+  const txs=state.txs||[];
+  const d=calcularDescubierto(txs);
+  const cfg=getConfigDesc();
+
+  // Sincronizar inputs
+  const liInput=document.getElementById('desc-limite-input');
+  const taInput=document.getElementById('desc-tasa-input');
+  const inInput=document.getElementById('desc-inicio-input');
+  if(liInput&&!liInput.dataset.dirty) liInput.value=cfg.limite||5000000;
+  if(taInput&&!taInput.dataset.dirty) taInput.value=cfg.tasa||1.8;
+  if(inInput&&cfg.inicio&&!inInput.dataset.dirty) inInput.value=cfg.inicio;
+
+  // ── Card detalle ──
+  const el=document.getElementById('desc-detalle-card');
+  if(!el) return;
+
+  const critPct=d.pctUsado>=100;
+  const alertPct=d.pctUsado>=80;
+
+  let alertas='';
+  if(d.activo){
+    alertas+=`<div class="desc-alert ${critPct?'critico':''}"><i class="ti ti-alert-triangle"></i>Estás usando el descubierto: ${fmt(d.descUsado,'ARS')}</div>`;
+    if(d.diasEnDesc>0) alertas+=`<div class="desc-alert info"><i class="ti ti-clock"></i>Llevás ${d.diasEnDesc} día${d.diasEnDesc===1?'':'s'} usando el descubierto</div>`;
+    if(d.interesDiario>0) alertas+=`<div class="desc-alert info"><i class="ti ti-trending-up"></i>Interés estimado de hoy: ${fmt(d.interesDiario,'ARS')}</div>`;
+    if(alertPct&&!critPct) alertas+=`<div class="desc-alert"><i class="ti ti-alert-circle"></i>Superaste el 80% del descubierto disponible</div>`;
+    if(critPct) alertas+=`<div class="desc-alert critico"><i class="ti ti-alert-octagon"></i>ALERTA CRÍTICA: Alcanzaste el límite del descubierto</div>`;
+    alertas+=`<div class="desc-alert info"><i class="ti ti-info-circle"></i>Cuando cobres, primero se cancelará el descubierto (${fmt(d.descUsado,'ARS')}) y sus intereses (${fmt(d.interesAcum,'ARS')})</div>`;
+  }
+
+  // Saldo real: lo que quedaría después de pagar deuda
+  const saldoReal=d.balNeto>=0?d.balNeto:0;
+
+  const barColor=critPct?'var(--red)':alertPct?'var(--gold)':'var(--blue)';
+  const cardCls=d.activo?(critPct?'critico':''):'ok';
+  const titleCls=d.activo?'':'ok';
+
+  el.innerHTML=`
+    <div class="desc-card ${cardCls}">
+      <div class="desc-titulo ${titleCls}">
+        <i class="ti ti-building-bank"></i>
+        ${d.activo?'Descubierto activo':'Descubierto disponible · Sin uso'}
+      </div>
+
+      ${alertas}
+
+      <div class="desc-grid">
+        <div class="desc-item">
+          <div class="desc-item-label">Límite total</div>
+          <div class="desc-item-val" style="color:var(--text2);">${fmt(d.limite,'ARS')}</div>
+        </div>
+        <div class="desc-item">
+          <div class="desc-item-label">Disponible</div>
+          <div class="desc-item-val" style="color:${d.activo?'var(--gold)':'var(--green)'};">${fmt(d.disponible,'ARS')}</div>
+        </div>
+        <div class="desc-item">
+          <div class="desc-item-label">Monto utilizado</div>
+          <div class="desc-item-val" style="color:${d.activo?'var(--red)':'var(--text3)'};">${fmt(d.descUsado,'ARS')}</div>
+        </div>
+        <div class="desc-item">
+          <div class="desc-item-label">Tasa diaria</div>
+          <div class="desc-item-val" style="color:var(--text2);">${d.tasaPct}%</div>
+        </div>
+        ${d.activo?`
+        <div class="desc-item">
+          <div class="desc-item-label">Interés diario</div>
+          <div class="desc-item-val" style="color:var(--red);">${fmt(d.interesDiario,'ARS')}</div>
+        </div>
+        <div class="desc-item">
+          <div class="desc-item-label">Interés acumulado</div>
+          <div class="desc-item-val" style="color:var(--red);">${fmt(d.interesAcum,'ARS')}</div>
+        </div>
+        <div class="desc-item" style="grid-column:1/-1;">
+          <div class="desc-item-label">Total a devolver (descubierto + intereses)</div>
+          <div class="desc-item-val" style="color:var(--red);font-size:20px;">${fmt(d.totalDevolver,'ARS')}</div>
+        </div>`:''}
+      </div>
+
+      ${d.activo?`
+      <div class="desc-bar-wrap">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
+          <span>Uso del descubierto</span><span>${d.pctUsado.toFixed(1)}%</span>
+        </div>
+        <div class="desc-bar-track">
+          <div class="desc-bar-fill" style="width:${Math.min(100,d.pctUsado)}%;background:${barColor};"></div>
+        </div>
+      </div>`:''}
+
+      <div class="desc-saldo-real">
+        <div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px;">Saldo real disponible ARS</div>
+          <div style="font-size:18px;font-weight:700;color:var(--blue);">${fmt(saldoReal,'ARS')}</div>
+          ${d.activo?`<div style="font-size:10px;color:var(--text3);margin-top:2px;">Después de cancelar deuda e intereses</div>`:''}
+        </div>
+        <i class="ti ti-wallet" style="font-size:28px;color:rgba(91,156,246,0.3);"></i>
+      </div>
+    </div>`;
+
+  // Actualizar card en dashboard
+  renderDescDashboard(d);
+  // Recalcular simulador si hay valor
+  simularIngreso();
+}
+
+function renderDescDashboard(d){
+  const el=document.getElementById('desc-home-card');
+  if(!el) return;
+  if(!d.activo){el.innerHTML='';el.style.display='none';return;}
+  el.style.display='block';
+  const critPct=d.pctUsado>=100;
+  el.innerHTML=`
+    <div class="desc-card ${critPct?'critico':''}">
+      <div class="desc-titulo"><i class="ti ti-building-bank"></i>Descubierto Santander · Activo</div>
+      ${critPct?'<div class="desc-alert critico"><i class="ti ti-alert-octagon"></i>ALERTA CRÍTICA: Alcanzaste el límite</div>':''}
+      ${d.pctUsado>=80&&!critPct?'<div class="desc-alert"><i class="ti ti-alert-triangle"></i>Superaste el 80% del límite disponible</div>':''}
+      <div class="desc-grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="desc-item"><div class="desc-item-label">Utilizado</div><div class="desc-item-val" style="color:var(--red);font-size:15px;">${fmt(d.descUsado,'ARS')}</div></div>
+        <div class="desc-item"><div class="desc-item-label">Intereses</div><div class="desc-item-val" style="color:var(--red);font-size:15px;">${fmt(d.interesAcum,'ARS')}</div></div>
+        <div class="desc-item"><div class="desc-item-label">Total a pagar</div><div class="desc-item-val" style="color:var(--red);font-size:15px;">${fmt(d.totalDevolver,'ARS')}</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px;"><i class="ti ti-clock" style="font-size:12px;margin-right:4px;"></i>${d.diasEnDesc} día${d.diasEnDesc===1?'':'s'} en descubierto · Interés hoy: ${fmt(d.interesDiario,'ARS')} · <button onclick="showSec('descubierto',null)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:12px;padding:0;">Ver detalle →</button></div>
+    </div>`;
+}
+
+function simularIngreso(){
+  const ingreso=parseMonto(document.getElementById('desc-sim-ingreso')?.value)||0;
+  const el=document.getElementById('desc-sim-resultado');
+  if(!el) return;
+  if(!ingreso){el.innerHTML='';return;}
+
+  const d=calcularDescubierto(state.txs||[]);
+
+  if(!d.activo){
+    el.innerHTML=`<div class="desc-saldo-real"><div><div style="font-size:12px;color:var(--text2);margin-bottom:4px;">No hay descubierto activo</div><div style="font-size:18px;font-weight:700;color:var(--green);">Saldo disponible: ${fmt(ingreso,'ARS')}</div></div></div>`;
+    return;
+  }
+
+  let resto=ingreso;
+  const pasos=[];
+
+  // 1. Cancelar descubierto
+  const cancelDesc=Math.min(resto,d.descUsado);
+  resto-=cancelDesc;
+  pasos.push({label:`Cancelación del descubierto`,monto:cancelDesc,tipo:'neg'});
+
+  // 2. Pagar intereses (si quedan fondos)
+  const pagarInt=Math.min(resto,d.interesAcum);
+  resto-=pagarInt;
+  if(pagarInt>0) pasos.push({label:`Intereses acumulados (${d.diasEnDesc} días)`,monto:pagarInt,tipo:'neg'});
+
+  const saldoFinal=resto;
+
+  el.innerHTML=`
+    <div style="background:rgba(255,255,255,0.04);border-radius:var(--rs);padding:14px;">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Cálculo automático</div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="font-size:13px;color:var(--text2);">Ingreso recibido</span>
+        <span style="font-size:13px;font-weight:600;color:var(--green);">+${fmt(ingreso,'ARS')}</span>
+      </div>
+      ${pasos.map(p=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="font-size:13px;color:var(--text2);">${p.label}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--red);">-${fmt(p.monto,'ARS')}</span>
+      </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px;">
+        <span style="font-size:14px;font-weight:600;">Saldo disponible real</span>
+        <span style="font-size:16px;font-weight:700;color:${saldoFinal>=0?'var(--green)':'var(--red)'};">${saldoFinal>=0?'+':''}${fmt(saldoFinal,'ARS')}</span>
+      </div>
+      ${saldoFinal<0?`<div style="font-size:11px;color:var(--red);margin-top:6px;">⚠ El ingreso no alcanza para cubrir toda la deuda. Faltarían ${fmt(Math.abs(saldoFinal),'ARS')}.</div>`:''}
+    </div>`;
+}
+
 // ── BACKUP SEMANAL ───────────────────────────────────────────────────────
 // ── BACKUP SEMANAL ───────────────────────────────────────────────────────
 async function generarBackupCompleto(){
@@ -2028,6 +2319,16 @@ function toast(msg,tipo){
 // ── INIT ──────────────────────────────────────────────────────────────────
 document.getElementById('f-fecha').value=new Date().toISOString().split('T')[0];
 document.getElementById('ap-fecha').value=new Date().toISOString().split('T')[0];
+// Inicializar config descubierto desde localStorage
+(function(){
+  const cfg=JSON.parse(localStorage.getItem('desc_config_v1')||'{}');
+  const li=document.getElementById('desc-limite-input');
+  const ta=document.getElementById('desc-tasa-input');
+  const ini=document.getElementById('desc-inicio-input');
+  if(li&&cfg.limite) li.value=cfg.limite;
+  if(ta&&cfg.tasa)   ta.value=cfg.tasa;
+  if(ini&&cfg.inicio) ini.value=cfg.inicio;
+})();
 
 if(sessionStorage.getItem('logged')==='1'){
   currentUser=sessionStorage.getItem('user')||'';
