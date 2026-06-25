@@ -317,10 +317,10 @@ select option{background:#0f1729;}
     <div class="login-logo">💰</div>
     <div class="login-title">Mis Finanzas</div>
     <div class="login-sub">Ingresá para continuar</div>
-    <div class="login-field"><label>Usuario</label><input class="login-input" id="l-user" placeholder="tu usuario" autocomplete="username" autocapitalize="none"></div>
+    <div class="login-field"><label>Email</label><input class="login-input" id="l-user" placeholder="tu@email.com" autocomplete="email" autocapitalize="none" type="email"></div>
     <div class="login-field"><label>Contraseña</label><input class="login-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn bp" onclick="login()" style="margin-top:8px;">Entrar</button>
-    <div class="login-err" id="l-err">Usuario o contraseña incorrectos</div>
+    <div id="l-err" style="color:var(--red);font-size:13px;margin-top:12px;display:none;text-align:center;">Email o contraseña incorrectos</div>
   </div>
 </div>
 
@@ -756,22 +756,42 @@ let editingTxId=null,editingMetaId=null,editingTarId=null;
 let tipoActual='gasto';
 let currentUser='';
 
-// ── LOGIN ─────────────────────────────────────────────────────────────────
-const USERS={'joaquin':'joaquin'};
+// ── LOGIN CON SUPABASE AUTH ───────────────────────────────────────────────
+const SB_URL_CONST='https://gdbtgawarlpkxhsejwyv.supabase.co';
+const SB_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkYnRnYXdhcmxwa3hoc2Vqd3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNzU3NDcsImV4cCI6MjA5Nzc1MTc0N30.mG5G4x3xGdrQBs7-EMLpRpkc6Q4xv2s0As41rdCdmik';
 
-function login(){
-  const user=document.getElementById('l-user').value.trim().toLowerCase();
+async function login(){
+  const email=document.getElementById('l-user').value.trim();
   const pass=document.getElementById('l-pass').value;
   const err=document.getElementById('l-err');
-  if(USERS[user]&&USERS[user]===pass){
+  const btn=document.querySelector('#login-screen .btn');
+  if(!email||!pass){err.textContent='Completá email y contraseña';err.style.display='block';return;}
+  btn.textContent='Entrando...';btn.disabled=true;
+  try{
+    const res=await fetch(`${SB_URL_CONST}/auth/v1/token?grant_type=password`,{
+      method:'POST',
+      headers:{'apikey':SB_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password:pass})
+    });
+    const data=await res.json();
+    if(!res.ok||data.error){
+      err.textContent='Email o contraseña incorrectos';
+      err.style.display='block';
+      document.getElementById('l-pass').value='';
+      btn.textContent='Entrar';btn.disabled=false;
+      return;
+    }
+    // Login exitoso — guardar token
     err.style.display='none';
-    currentUser=user;
-    sessionStorage.setItem('logged','1');
-    sessionStorage.setItem('user',user);
-    cargarCredencialesYArrancar();
-  }else{
+    currentUser=email.split('@')[0];
+    sessionStorage.setItem('sb_token',data.access_token);
+    sessionStorage.setItem('sb_refresh',data.refresh_token);
+    sessionStorage.setItem('user',currentUser);
+    cargarCredencialesYArrancar(data.access_token);
+  }catch(e){
+    err.textContent='Error de conexión. Intentá de nuevo.';
     err.style.display='block';
-    document.getElementById('l-pass').value='';
+    btn.textContent='Entrar';btn.disabled=false;
   }
 }
 
@@ -779,18 +799,27 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none') login();
 });
 
-function cerrarSesion(){
-  sessionStorage.removeItem('logged');
-  sessionStorage.removeItem('user');
+async function cerrarSesion(){
+  const token=sessionStorage.getItem('sb_token');
+  if(token){
+    // Cerrar sesión en Supabase
+    await fetch(`${SB_URL_CONST}/auth/v1/logout`,{
+      method:'POST',
+      headers:{'apikey':SB_ANON_KEY,'Authorization':'Bearer '+token}
+    }).catch(()=>{});
+  }
+  sessionStorage.clear();
   document.getElementById('main-app').style.display='none';
   document.getElementById('main-nav').style.display='none';
+  if(document.getElementById('fab-desktop')) document.getElementById('fab-desktop').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('l-pass').value='';
 }
 
-function cargarCredencialesYArrancar(){
-  SB_URL='https://gdbtgawarlpkxhsejwyv.supabase.co';
-  SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkYnRnYXdhcmxwa3hoc2Vqd3l2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNzU3NDcsImV4cCI6MjA5Nzc1MTc0N30.mG5G4x3xGdrQBs7-EMLpRpkc6Q4xv2s0As41rdCdmik';
+function cargarCredencialesYArrancar(token){
+  SB_URL=SB_URL_CONST;
+  // Usar el token de sesión si está disponible, sino la anon key
+  SB_KEY=token||sessionStorage.getItem('sb_token')||SB_ANON_KEY;
   arrancar();
 }
 
@@ -814,20 +843,59 @@ async function arrancar(){
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 async function sb(method,path,body){
-  const opts={method,headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':''}};
+  // Usar token de sesión si existe, sino anon key
+  const token=sessionStorage.getItem('sb_token')||SB_KEY;
+  const opts={method,headers:{
+    'apikey':SB_ANON_KEY,
+    'Authorization':'Bearer '+token,
+    'Content-Type':'application/json',
+    'Prefer':method==='POST'?'return=representation':''
+  }};
   if(body) opts.body=JSON.stringify(body);
   const res=await fetch(`${SB_URL}/rest/v1/${path}`,opts);
   if(res.status===204) return {data:null};
+  // Si el token expiró, intentar refrescar
+  if(res.status===401){
+    const refreshed=await refreshToken();
+    if(refreshed){
+      opts.headers['Authorization']='Bearer '+sessionStorage.getItem('sb_token');
+      const res2=await fetch(`${SB_URL}/rest/v1/${path}`,opts);
+      if(res2.status===204) return {data:null};
+      const data2=await res2.json();
+      return res2.ok?{data:data2}:{error:data2};
+    }
+    cerrarSesion();
+    return {error:{message:'Sesión expirada'}};
+  }
   const data=await res.json();
   if(!res.ok) return {error:data};
   return {data};
 }
 
+async function refreshToken(){
+  const refresh=sessionStorage.getItem('sb_refresh');
+  if(!refresh) return false;
+  try{
+    const res=await fetch(`${SB_URL_CONST}/auth/v1/token?grant_type=refresh_token`,{
+      method:'POST',
+      headers:{'apikey':SB_ANON_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:refresh})
+    });
+    const data=await res.json();
+    if(res.ok&&data.access_token){
+      sessionStorage.setItem('sb_token',data.access_token);
+      sessionStorage.setItem('sb_refresh',data.refresh_token);
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 async function getOrCreateUser(){
-  const tid='web_user_1';
-  let r=await sb('GET',`usuarios?telegram_id=eq.${tid}&select=id`);
+  const uid='joaquinignaciogomezz@gmail.com';
+  let r=await sb('GET',`usuarios?telegram_id=eq.${uid}&select=id`);
   if(r.data&&r.data.length>0){state.userId=r.data[0].id;return;}
-  r=await sb('POST','usuarios',{telegram_id:tid});
+  r=await sb('POST','usuarios',{telegram_id:uid});
   if(r.data&&r.data.length>0) state.userId=r.data[0].id;
 }
 
@@ -2332,9 +2400,10 @@ document.getElementById('ap-fecha').value=new Date().toISOString().split('T')[0]
   if(ini&&cfg.inicio) ini.value=cfg.inicio;
 })();
 
-if(sessionStorage.getItem('logged')==='1'){
+// Verificar si hay sesión activa
+if(sessionStorage.getItem('sb_token')){
   currentUser=sessionStorage.getItem('user')||'';
-  cargarCredencialesYArrancar();
+  cargarCredencialesYArrancar(sessionStorage.getItem('sb_token'));
 }else{
   document.getElementById('login-screen').style.display='flex';
 }
