@@ -255,6 +255,35 @@ select option{background:#0f1729;}
   .sec{margin-left:240px;width:calc(100vw - 240px);padding:36px 48px;}
   .metrics{grid-template-columns:repeat(4,1fr);}
 }
+
+/* ── RECORDATORIOS Y ALERTAS ──────────────────────────────────── */
+.reminder-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--r);padding:16px;margin-bottom:10px;border-left:3px solid var(--gold);}
+.reminder-card.vencido{border-left-color:var(--red);}
+.reminder-card.hoy{border-left-color:var(--purple);}
+.reminder-card.ok{border-left-color:var(--green);}
+.reminder-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.reminder-name{font-size:14px;font-weight:600;color:var(--text);}
+.reminder-monto{font-size:13px;font-weight:600;color:var(--text2);}
+.reminder-msg{font-size:12px;color:var(--text2);margin-top:2px;}
+.reminder-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;flex-shrink:0;}
+.rb-red{background:var(--red-dim);color:var(--red);}
+.rb-gold{background:var(--gold-dim);color:var(--gold);}
+.rb-purple{background:rgba(167,139,250,0.15);color:var(--purple);}
+.rb-green{background:var(--green-dim);color:var(--green);}
+.rb-gray{background:rgba(255,255,255,0.06);color:var(--text2);}
+.variacion-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.variacion-row:last-child{border-bottom:none;}
+.variacion-label{font-size:13px;color:var(--text);font-weight:500;}
+.variacion-pct{font-size:13px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.vp-up{background:var(--red-dim);color:var(--red);}
+.vp-up-alert{background:rgba(255,90,110,0.3);color:var(--red);border:1px solid rgba(255,90,110,0.5);}
+.vp-down{background:var(--green-dim);color:var(--green);}
+.vp-flat{background:rgba(255,255,255,0.06);color:var(--text2);}
+.alerta-importante{background:rgba(255,90,110,0.12);border:1px solid rgba(255,90,110,0.3);border-radius:var(--rs);padding:10px 14px;margin-bottom:8px;font-size:13px;color:var(--red);display:flex;align-items:flex-start;gap:8px;}
+.variacion-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.vs-item{background:rgba(255,255,255,0.04);border-radius:var(--rs);padding:10px;text-align:center;}
+.vs-num{font-size:20px;font-weight:700;}
+.vs-lbl{font-size:10px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
 </style>
 </head>
 <body>
@@ -403,6 +432,22 @@ select option{background:#0f1729;}
       </div>
       <div id="cuotas-home-list"></div>
     </div>
+    <!-- Próximos vencimientos en dashboard -->
+    <div class="card" id="dash-vencimientos-card" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="ct" style="margin-bottom:0;">⏰ Próximos vencimientos</div>
+        <button onclick="showSec('recordatorios',null)" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;">Ver todos →</button>
+      </div>
+      <div id="dash-vencimientos-list"></div>
+    </div>
+    <!-- Alertas de aumento en dashboard -->
+    <div class="card" id="dash-alertas-card" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="ct" style="margin-bottom:0;">📊 Variaciones vs mes anterior</div>
+        <button onclick="showSec('recordatorios',null)" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;">Ver detalle →</button>
+      </div>
+      <div id="dash-alertas-list"></div>
+    </div>
     <div class="card">
       <div class="ct" style="margin-bottom:12px;">Últimos movimientos</div>
       <div id="recent-list"><div class="loading">Cargando...</div></div>
@@ -512,6 +557,22 @@ select option{background:#0f1729;}
     <div class="card"><div id="metas-list"><div class="loading">Cargando...</div></div></div>
   </div>
 
+  <!-- RECORDATORIOS -->
+  <div id="sec-recordatorios" class="sec">
+    <div class="ph">
+      <div class="pt">Recordatorios</div>
+      <button class="btn bp" style="width:auto;padding:8px 16px;margin:0;font-size:13px;" onclick="abrirNuevoRecordatorio()">+ Nuevo</button>
+    </div>
+    <!-- Alertas de variación -->
+    <div class="card" id="variacion-card">
+      <div class="ct">Alertas de variación mensual</div>
+      <div id="variacion-summary" class="variacion-summary"></div>
+      <div id="variacion-list"><div class="empty">Cargando...</div></div>
+    </div>
+    <!-- Lista de recordatorios -->
+    <div id="recordatorios-list"><div class="loading">Cargando...</div></div>
+  </div>
+
   <!-- TARJETAS -->
   <div id="sec-tarjetas" class="sec">
     <div class="ph">
@@ -539,6 +600,36 @@ select option{background:#0f1729;}
 
 </div>
 
+<!-- MODAL RECORDATORIO -->
+<div class="modal-overlay" id="reminder-modal" style="display:none;" onclick="if(event.target===this)cerrarModal('reminder-modal')">
+  <div class="modal">
+    <div class="modal-title"><span id="reminder-modal-title">Nuevo recordatorio</span><button class="modal-close" onclick="cerrarModal('reminder-modal')">✕</button></div>
+    <div class="fr"><label>Servicio / Nombre</label>
+      <select id="rm-tipo" onchange="autoRmNombre()">
+        <option value="">Seleccioná o escribí abajo...</option>
+        <option>Alquiler</option><option>Luz</option><option>Agua</option><option>Gas</option>
+        <option>Internet</option><option>Teléfono</option><option>Expensas</option>
+        <option>Seguro</option><option>Streaming</option><option>Otro</option>
+      </select>
+      <input type="text" id="rm-nombre" placeholder="Nombre personalizado" style="margin-top:8px;">
+    </div>
+    <div class="fg">
+      <div class="fr"><label>Moneda</label><select id="rm-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+      <div class="fr"><label>Monto estimado</label><input type="number" id="rm-monto" placeholder="0" step="any" inputmode="decimal"></div>
+    </div>
+    <div class="fg">
+      <div class="fr"><label>Día llegada factura</label><input type="number" id="rm-dia-llegada" min="1" max="31" placeholder="Ej: 10" inputmode="numeric"></div>
+      <div class="fr"><label>Día vencimiento</label><input type="number" id="rm-dia-vence" min="1" max="31" placeholder="Ej: 20" inputmode="numeric"></div>
+    </div>
+    <div class="fr"><label>Medio de pago</label><select id="rm-medio"></select></div>
+    <div class="fr"><label>Observaciones (opcional)</label><input type="text" id="rm-obs" placeholder="Ej: pago debitado automático..."></div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn bd" style="flex:1;display:none;" id="rm-delete-btn" onclick="eliminarRecordatorio()">🗑 Eliminar</button>
+      <button class="btn bp" style="flex:2" onclick="guardarRecordatorio()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Desktop FAB -->
 <button class="fab-desktop" id="fab-desktop" onclick="showSec('agregar',null)" style="display:none;">
   Agregar
@@ -554,6 +645,7 @@ select option{background:#0f1729;}
     <button class="nb" onclick="showSec('tarjetas',this)"><i class="ti ti-credit-card"></i><span class="nb-label">Tarjetas</span></button>
     <button class="nb" onclick="showSec('analisis',this)"><i class="ti ti-chart-pie"></i><span class="nb-label">Análisis</span></button>
     <button class="nb" onclick="showSec('metas',this)"><i class="ti ti-target"></i><span class="nb-label">Metas</span></button>
+    <button class="nb" onclick="showSec('recordatorios',this)"><i class="ti ti-bell"></i><span class="nb-label">Avisos</span></button>
   </div>
 </nav>
 
@@ -650,6 +742,7 @@ async function arrancar(){
   await getOrCreateUser();
   await cargarTarjetasEnState();
   buildMedioPago();
+  buildRmMedio();
   render();
   verificarBackupSemanal();
 }
@@ -906,6 +999,8 @@ async function render(){
   await renderMetas();
   await renderTarjetas();
   renderAnalisis(state.txs);
+  renderRecordatorios();
+  await renderDashboardAvisos();
 }
 
 function renderMetrics(txs){
@@ -1161,11 +1256,10 @@ async function renderBarChart(){
 function showSec(id,btn){
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  document.getElementById('sec-'+id).classList.add('active');
+  const secEl=document.getElementById('sec-'+id);
+  if(secEl) secEl.classList.add('active');
   if(btn) btn.classList.add('active');
-  // On desktop, scroll content area to top
-  const sec=document.getElementById('sec-'+id);
-  if(sec) sec.scrollTop=0;
+  if(secEl) secEl.scrollTop=0;
   render();
 }
 
@@ -1471,6 +1565,352 @@ async function exportarExcel(){
   toast('Excel descargado ✓');
 }
 
+// ── RECORDATORIOS ────────────────────────────────────────────────────────
+const REMINDER_ICONS = {
+  'Alquiler':'ti-home','Luz':'ti-bolt','Agua':'ti-droplet','Gas':'ti-flame',
+  'Internet':'ti-wifi','Teléfono':'ti-phone','Expensas':'ti-building',
+  'Seguro':'ti-shield','Streaming':'ti-brand-netflix','Otro':'ti-bell'
+};
+let editingReminderId=null;
+const ALERTA_PCT=15; // % mínimo para alerta importante
+
+// Guardar recordatorios en localStorage (son configs, no datos financieros)
+function getRecordatorios(){
+  try{return JSON.parse(localStorage.getItem('recordatorios_v1'))||[];}catch(e){return[];}
+}
+function saveRecordatorios(list){
+  localStorage.setItem('recordatorios_v1',JSON.stringify(list));
+}
+
+function autoRmNombre(){
+  const v=document.getElementById('rm-tipo').value;
+  if(v&&v!=='Otro') document.getElementById('rm-nombre').value=v;
+}
+
+function buildRmMedio(){
+  const sel=document.getElementById('rm-medio');
+  if(!sel) return;
+  sel.innerHTML='<option value="Efectivo">💵 Efectivo</option>';
+  state.tarjetas.forEach(t=>{
+    sel.innerHTML+=`<option value="${t.nombre}">💳 ${t.nombre}</option>`;
+  });
+}
+
+function abrirNuevoRecordatorio(){
+  editingReminderId=null;
+  document.getElementById('reminder-modal-title').textContent='Nuevo recordatorio';
+  document.getElementById('rm-tipo').value='';
+  document.getElementById('rm-nombre').value='';
+  document.getElementById('rm-moneda').value='ARS';
+  document.getElementById('rm-monto').value='';
+  document.getElementById('rm-dia-llegada').value='';
+  document.getElementById('rm-dia-vence').value='';
+  document.getElementById('rm-obs').value='';
+  document.getElementById('rm-delete-btn').style.display='none';
+  buildRmMedio();
+  document.getElementById('reminder-modal').style.display='flex';
+}
+
+function abrirEditarRecordatorio(id){
+  const list=getRecordatorios();
+  const r=list.find(x=>x.id===id);
+  if(!r) return;
+  editingReminderId=id;
+  document.getElementById('reminder-modal-title').textContent='Editar recordatorio';
+  document.getElementById('rm-tipo').value=r.tipo||'';
+  document.getElementById('rm-nombre').value=r.nombre||'';
+  document.getElementById('rm-moneda').value=r.moneda||'ARS';
+  document.getElementById('rm-monto').value=r.monto||'';
+  document.getElementById('rm-dia-llegada').value=r.diaLlegada||'';
+  document.getElementById('rm-dia-vence').value=r.diaVence||'';
+  document.getElementById('rm-obs').value=r.obs||'';
+  document.getElementById('rm-delete-btn').style.display='block';
+  buildRmMedio();
+  document.getElementById('rm-medio').value=r.medio||'Efectivo';
+  document.getElementById('reminder-modal').style.display='flex';
+}
+
+function guardarRecordatorio(){
+  const nombre=(document.getElementById('rm-nombre').value||document.getElementById('rm-tipo').value).trim();
+  if(!nombre){toast('Ingresá un nombre','r');return;}
+  const list=getRecordatorios();
+  const item={
+    id:editingReminderId||Date.now(),
+    tipo:document.getElementById('rm-tipo').value,
+    nombre,
+    moneda:document.getElementById('rm-moneda').value,
+    monto:parseMonto(document.getElementById('rm-monto').value)||0,
+    diaLlegada:parseInt(document.getElementById('rm-dia-llegada').value)||null,
+    diaVence:parseInt(document.getElementById('rm-dia-vence').value)||null,
+    medio:document.getElementById('rm-medio').value,
+    obs:document.getElementById('rm-obs').value.trim()
+  };
+  if(editingReminderId){
+    const idx=list.findIndex(x=>x.id===editingReminderId);
+    if(idx>=0) list[idx]=item; else list.push(item);
+  } else {
+    list.push(item);
+  }
+  saveRecordatorios(list);
+  cerrarModal('reminder-modal');
+  toast('Recordatorio guardado ✓');
+  renderRecordatorios();
+  renderDashboardAvisos();
+}
+
+function eliminarRecordatorio(){
+  if(!editingReminderId) return;
+  if(!confirm('¿Eliminar este recordatorio?')) return;
+  const list=getRecordatorios().filter(x=>x.id!==editingReminderId);
+  saveRecordatorios(list);
+  cerrarModal('reminder-modal');
+  toast('Recordatorio eliminado');
+  renderRecordatorios();
+  renderDashboardAvisos();
+}
+
+function calcularEstadoVencimiento(r){
+  const hoy=new Date().getDate();
+  const dv=r.diaVence;
+  const dl=r.diaLlegada;
+  if(!dv&&!dl) return {estado:'sin-fecha',msg:'Sin fecha configurada',dias:null};
+  if(dv){
+    const diff=dv-hoy;
+    if(diff<0) return {estado:'vencido',msg:`Vencido hace ${Math.abs(diff)} día${Math.abs(diff)===1?'':'s'}`,dias:diff};
+    if(diff===0) return {estado:'hoy',msg:'Vence hoy',dias:0};
+    if(diff<=3) return {estado:'proximo',msg:`Vence en ${diff} día${diff===1?'':'s'}`,dias:diff};
+    if(dl){
+      const diffL=dl-hoy;
+      if(diffL>=0&&diffL<=3) return {estado:'llega',msg:`Factura llega en ${diffL} día${diffL===1?'':'s'} (vence día ${dv})`,dias:diffL};
+    }
+    return {estado:'ok',msg:`Vence el día ${dv} (en ${diff} días)`,dias:diff};
+  }
+  if(dl){
+    const diff=dl-hoy;
+    if(diff<0) return {estado:'llego',msg:`Factura llegó hace ${Math.abs(diff)} días`,dias:diff};
+    if(diff<=3) return {estado:'llega',msg:`Factura llega en ${diff} día${diff===1?'':'s'}`,dias:diff};
+    return {estado:'ok',msg:`Factura llega el día ${dl}`,dias:diff};
+  }
+  return {estado:'ok',msg:'',dias:null};
+}
+
+function renderRecordatorios(){
+  const list=getRecordatorios();
+  const el=document.getElementById('recordatorios-list');
+  if(!el) return;
+  if(!list.length){
+    el.innerHTML='<div class="card"><div class="empty">Sin recordatorios. Agregá servicios fijos para recibir avisos.</div></div>';
+  } else {
+    // Ordenar por proximidad
+    const sorted=[...list].sort((a,b)=>{
+      const da=calcularEstadoVencimiento(a).dias;
+      const db=calcularEstadoVencimiento(b).dias;
+      if(da===null&&db===null) return 0;
+      if(da===null) return 1;
+      if(db===null) return -1;
+      return da-db;
+    });
+    el.innerHTML=sorted.map(r=>{
+      const ev=calcularEstadoVencimiento(r);
+      const icon=REMINDER_ICONS[r.tipo||r.nombre]||'ti-bell';
+      const cardCls=ev.estado==='vencido'?'vencido':ev.estado==='hoy'?'hoy':ev.estado==='ok'?'ok':'';
+      const badgeCls=ev.estado==='vencido'?'rb-red':ev.estado==='hoy'?'rb-purple':(ev.estado==='proximo'||ev.estado==='llega')?'rb-gold':'rb-green';
+      const badgeTxt=ev.estado==='vencido'?'VENCIDO':ev.estado==='hoy'?'HOY':(ev.estado==='proximo'||ev.estado==='llega')?'PRÓXIMO':ev.estado==='ok'?'OK':'—';
+      return `<div class="reminder-card ${cardCls}" onclick="abrirEditarRecordatorio(${r.id})">
+        <div class="reminder-row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:12px;background:rgba(245,200,66,0.12);color:var(--gold);display:flex;align-items:center;justify-content:center;"><i class="ti ${icon}" style="font-size:16px;"></i></div>
+            <div>
+              <div class="reminder-name">${r.nombre}</div>
+              ${r.monto?`<div class="reminder-monto">${fmt(r.monto,r.moneda)}</div>`:''}
+            </div>
+          </div>
+          <span class="reminder-badge ${badgeCls}">${badgeTxt}</span>
+        </div>
+        <div class="reminder-msg">${ev.msg}${r.medio?' · '+r.medio:''}${r.obs?' · '+r.obs:''}</div>
+      </div>`;
+    }).join('');
+  }
+  renderVariacionMensual();
+}
+
+// ── VARIACIÓN MENSUAL ─────────────────────────────────────────────────────
+async function renderVariacionMensual(){
+  const el=document.getElementById('variacion-list');
+  const elSum=document.getElementById('variacion-summary');
+  if(!el) return;
+
+  // Mes actual y anterior
+  const m=state.month, y=state.year;
+  let mAnt=m-1, yAnt=y;
+  if(mAnt<0){mAnt=11;yAnt--;}
+
+  // Traer todos los movimientos
+  const rAll=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&tipo=eq.gasto&order=fecha.desc`);
+  const allTx=rAll.data||[];
+
+  // Agrupar gastos por categoría+subcategoria para mes actual y anterior
+  function agrupar(mes,anio){
+    return allTx.filter(t=>{
+      const d=new Date(t.fecha+'T12:00:00');
+      return d.getMonth()===mes&&d.getFullYear()===anio;
+    }).reduce((acc,t)=>{
+      const k=t.subcategoria?`${t.categoria} · ${t.subcategoria}`:t.categoria;
+      if(!acc[k]) acc[k]={monto:0,moneda:t.moneda};
+      acc[k].monto+=(+t.monto);
+      return acc;
+    },{});
+  }
+
+  const actual=agrupar(m,y);
+  const anterior=agrupar(mAnt,yAnt);
+  const todasCats=new Set([...Object.keys(actual),...Object.keys(anterior)]);
+
+  let subieron=0,bajaron=0,sinCambios=0,mayorAumento={cat:'',pct:0};
+  const alertasImportantes=[];
+  const variaciones=[];
+
+  todasCats.forEach(cat=>{
+    const a=actual[cat]?.monto||0;
+    const b=anterior[cat]?.monto||0;
+    const moneda=actual[cat]?.moneda||anterior[cat]?.moneda||'ARS';
+
+    if(!b&&!a) return;
+    if(!b){
+      variaciones.push({cat,a,b,pct:null,moneda,tipo:'nuevo'});
+      subieron++;
+      return;
+    }
+    const pct=((a-b)/b)*100;
+    const pctStr=(pct>=0?'+':'')+pct.toFixed(1)+'%';
+    if(Math.abs(pct)<1){sinCambios++;variaciones.push({cat,a,b,pct,moneda,tipo:'flat'});}
+    else if(pct>0){
+      subieron++;
+      variaciones.push({cat,a,b,pct,moneda,tipo:'up'});
+      if(pct>mayorAumento.pct){mayorAumento={cat,pct};}
+      if(pct>=ALERTA_PCT) alertasImportantes.push({cat,a,b,pct,moneda,pctStr});
+    } else {
+      bajaron++;
+      variaciones.push({cat,a,b,pct,moneda,tipo:'down'});
+    }
+  });
+
+  // Resumen
+  elSum.innerHTML=`
+    <div class="vs-item"><div class="vs-num" style="color:var(--red)">${subieron}</div><div class="vs-lbl">Subieron</div></div>
+    <div class="vs-item"><div class="vs-num" style="color:var(--green)">${bajaron}</div><div class="vs-lbl">Bajaron</div></div>
+    <div class="vs-item"><div class="vs-num" style="color:var(--text2)">${sinCambios}</div><div class="vs-lbl">Sin cambios</div></div>
+    <div class="vs-item"><div class="vs-num" style="color:var(--gold);font-size:13px;">${mayorAumento.cat?mayorAumento.cat.slice(0,12)+'…':'—'}</div><div class="vs-lbl">Mayor aumento</div></div>
+  `;
+
+  // Alertas importantes primero
+  let html='';
+  alertasImportantes.sort((a,b)=>b.pct-a.pct).forEach(a=>{
+    html+=`<div class="alerta-importante"><i class="ti ti-alert-triangle" style="flex-shrink:0;margin-top:1px;"></i><div><strong>ALERTA: ${a.cat}</strong> aumentó ${a.pctStr} respecto al mes pasado<br><span style="font-size:11px;opacity:.8;">${fmt(a.b,a.moneda)} → ${fmt(a.a,a.moneda)}</span></div></div>`;
+  });
+
+  // Lista de variaciones ordenada por pct desc
+  variaciones.sort((a,b)=>(b.pct||0)-(a.pct||0)).forEach(v=>{
+    const pctStr=v.pct===null?'Nuevo':v.tipo==='flat'?'Sin cambios':((v.pct>=0?'+':'')+v.pct.toFixed(1)+'%');
+    const badgeCls=v.tipo==='up'&&v.pct>=ALERTA_PCT?'vp-up-alert':v.tipo==='up'?'vp-up':v.tipo==='down'?'vp-down':'vp-flat';
+    const arrow=v.tipo==='up'?'↑':v.tipo==='down'?'↓':'→';
+    html+=`<div class="variacion-row">
+      <div>
+        <div class="variacion-label">${arrow} ${v.cat}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${v.b?fmt(v.b,v.moneda)+' → ':''} ${fmt(v.a,v.moneda)}</div>
+      </div>
+      <span class="variacion-pct ${badgeCls}">${pctStr}</span>
+    </div>`;
+  });
+
+  if(!variaciones.length) html='<div class="empty">Sin datos del mes anterior para comparar</div>';
+  el.innerHTML=html;
+}
+
+async function renderDashboardAvisos(){
+  // Vencimientos en dashboard
+  const list=getRecordatorios();
+  const proximos=list.filter(r=>{
+    const ev=calcularEstadoVencimiento(r);
+    return ev.estado!=='ok'&&ev.estado!=='sin-fecha';
+  }).sort((a,b)=>{
+    const da=calcularEstadoVencimiento(a).dias;
+    const db=calcularEstadoVencimiento(b).dias;
+    return (da||99)-(db||99);
+  }).slice(0,4);
+
+  const cardV=document.getElementById('dash-vencimientos-card');
+  const listV=document.getElementById('dash-vencimientos-list');
+  if(cardV&&listV){
+    if(proximos.length){
+      cardV.style.display='block';
+      listV.innerHTML=proximos.map(r=>{
+        const ev=calcularEstadoVencimiento(r);
+        const badgeCls=ev.estado==='vencido'?'rb-red':ev.estado==='hoy'?'rb-purple':'rb-gold';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div>
+            <div style="font-size:13px;font-weight:500;">${r.nombre}</div>
+            <div style="font-size:11px;color:var(--text2);">${ev.msg}</div>
+          </div>
+          <div style="text-align:right;">
+            ${r.monto?`<div style="font-size:12px;font-weight:600;color:var(--text2);">${fmt(r.monto,r.moneda)}</div>`:''}
+            <span class="reminder-badge ${badgeCls}" style="margin-top:3px;display:inline-block;">${ev.estado==='vencido'?'VENCIDO':ev.estado==='hoy'?'HOY':'PRÓXIMO'}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      cardV.style.display='none';
+    }
+  }
+
+  // Alertas de variación en dashboard (solo las importantes)
+  const cardA=document.getElementById('dash-alertas-card');
+  const listA=document.getElementById('dash-alertas-list');
+  if(cardA&&listA){
+    const m=state.month,y=state.year;
+    let mAnt=m-1,yAnt=y;
+    if(mAnt<0){mAnt=11;yAnt--;}
+    const rAll=await sb('GET',`transacciones?usuario_id=eq.${state.userId}&tipo=eq.gasto`);
+    const allTx=rAll.data||[];
+    function agrupar2(mes,anio){
+      return allTx.filter(t=>{const d=new Date(t.fecha+'T12:00:00');return d.getMonth()===mes&&d.getFullYear()===anio;})
+        .reduce((acc,t)=>{const k=t.subcategoria?`${t.categoria} · ${t.subcategoria}`:t.categoria;if(!acc[k])acc[k]={monto:0,moneda:t.moneda};acc[k].monto+=(+t.monto);return acc;},{});
+    }
+    const actual=agrupar2(m,y);
+    const anterior=agrupar2(mAnt,yAnt);
+    const alertas=[];
+    let subieron=0,bajaron=0,sinCambios=0,mayorAum={cat:'',pct:0};
+    Object.keys({...actual,...anterior}).forEach(cat=>{
+      const a=actual[cat]?.monto||0;
+      const b=anterior[cat]?.monto||0;
+      const moneda=actual[cat]?.moneda||anterior[cat]?.moneda||'ARS';
+      if(!b||!a) return;
+      const pct=((a-b)/b)*100;
+      if(Math.abs(pct)<1) sinCambios++;
+      else if(pct>0){subieron++;if(pct>=ALERTA_PCT)alertas.push({cat,a,b,pct,moneda});if(pct>mayorAum.pct)mayorAum={cat,pct};}
+      else bajaron++;
+    });
+
+    let dashHtml=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="font-size:12px;background:var(--red-dim);color:var(--red);padding:3px 10px;border-radius:20px;">↑ ${subieron} subieron</span>
+      <span style="font-size:12px;background:var(--green-dim);color:var(--green);padding:3px 10px;border-radius:20px;">↓ ${bajaron} bajaron</span>
+      <span style="font-size:12px;background:rgba(255,255,255,0.06);color:var(--text2);padding:3px 10px;border-radius:20px;">→ ${sinCambios} sin cambios</span>
+    </div>`;
+    if(mayorAum.cat) dashHtml+=`<div style="font-size:12px;color:var(--text2);margin-bottom:8px;">Mayor aumento: <strong style="color:var(--red)">${mayorAum.cat} +${mayorAum.pct.toFixed(1)}%</strong></div>`;
+    alertas.sort((a,b)=>b.pct-a.pct).slice(0,3).forEach(a=>{
+      dashHtml+=`<div class="alerta-importante" style="margin-bottom:6px;"><i class="ti ti-alert-triangle" style="flex-shrink:0;"></i><span><strong>${a.cat}</strong> +${a.pct.toFixed(1)}% · ${fmt(a.b,a.moneda)} → ${fmt(a.a,a.moneda)}</span></div>`;
+    });
+
+    if(subieron||bajaron||sinCambios){
+      cardA.style.display='block';
+      listA.innerHTML=dashHtml;
+    } else {
+      cardA.style.display='none';
+    }
+  }
+}
+
+// ── BACKUP SEMANAL ───────────────────────────────────────────────────────
 // ── BACKUP SEMANAL ───────────────────────────────────────────────────────
 async function generarBackupCompleto(){
   toast('Generando backup completo...');
