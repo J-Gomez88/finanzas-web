@@ -818,8 +818,7 @@ async function cerrarSesion(){
 
 function cargarCredencialesYArrancar(token){
   SB_URL=SB_URL_CONST;
-  // Usar el token de sesión si está disponible, sino la anon key
-  SB_KEY=token||sessionStorage.getItem('sb_token')||SB_ANON_KEY;
+  SB_KEY=SB_ANON_KEY;
   arrancar();
 }
 
@@ -843,52 +842,18 @@ async function arrancar(){
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 async function sb(method,path,body){
-  // Usar token de sesión si existe, sino anon key
-  const token=sessionStorage.getItem('sb_token')||SB_KEY;
   const opts={method,headers:{
-    'apikey':SB_ANON_KEY,
-    'Authorization':'Bearer '+token,
+    'apikey':SB_KEY,
+    'Authorization':'Bearer '+SB_KEY,
     'Content-Type':'application/json',
     'Prefer':method==='POST'?'return=representation':''
   }};
   if(body) opts.body=JSON.stringify(body);
   const res=await fetch(`${SB_URL}/rest/v1/${path}`,opts);
   if(res.status===204) return {data:null};
-  // Si el token expiró, intentar refrescar
-  if(res.status===401){
-    const refreshed=await refreshToken();
-    if(refreshed){
-      opts.headers['Authorization']='Bearer '+sessionStorage.getItem('sb_token');
-      const res2=await fetch(`${SB_URL}/rest/v1/${path}`,opts);
-      if(res2.status===204) return {data:null};
-      const data2=await res2.json();
-      return res2.ok?{data:data2}:{error:data2};
-    }
-    cerrarSesion();
-    return {error:{message:'Sesión expirada'}};
-  }
   const data=await res.json();
   if(!res.ok) return {error:data};
   return {data};
-}
-
-async function refreshToken(){
-  const refresh=sessionStorage.getItem('sb_refresh');
-  if(!refresh) return false;
-  try{
-    const res=await fetch(`${SB_URL_CONST}/auth/v1/token?grant_type=refresh_token`,{
-      method:'POST',
-      headers:{'apikey':SB_ANON_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({refresh_token:refresh})
-    });
-    const data=await res.json();
-    if(res.ok&&data.access_token){
-      sessionStorage.setItem('sb_token',data.access_token);
-      sessionStorage.setItem('sb_refresh',data.refresh_token);
-      return true;
-    }
-  }catch(e){}
-  return false;
 }
 
 async function getOrCreateUser(){
@@ -2400,7 +2365,7 @@ document.getElementById('ap-fecha').value=new Date().toISOString().split('T')[0]
 // Verificar si hay sesión activa
 if(sessionStorage.getItem('sb_token')){
   currentUser=sessionStorage.getItem('user')||'';
-  cargarCredencialesYArrancar(sessionStorage.getItem('sb_token'));
+  cargarCredencialesYArrancar();
 }else{
   document.getElementById('login-screen').style.display='flex';
 }
