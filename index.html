@@ -892,10 +892,11 @@ async function refreshToken(){
 }
 
 async function getOrCreateUser(){
-  const uid='joaquinignaciogomezz@gmail.com';
+  const uid='joaquinignaciogomezz%40gmail.com';
+  const uidReal='joaquinignaciogomezz@gmail.com';
   let r=await sb('GET',`usuarios?telegram_id=eq.${uid}&select=id`);
   if(r.data&&r.data.length>0){state.userId=r.data[0].id;return;}
-  r=await sb('POST','usuarios',{telegram_id:uid});
+  r=await sb('POST','usuarios',{telegram_id:uidReal});
   if(r.data&&r.data.length>0) state.userId=r.data[0].id;
 }
 
